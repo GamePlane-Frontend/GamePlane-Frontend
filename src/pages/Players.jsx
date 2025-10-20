@@ -7,7 +7,7 @@ import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 const Players = () => {
   const dispatch = useDispatch();
   const { players, loading, error } = useSelector((state) => state.players);
-  const { teams } = useSelector((state) => state.teams);
+  const { teams, loading: teamsLoading, error: teamsError } = useSelector((state) => state.teams);
   const { user } = useSelector((state) => state.auth);
   
   const [showModal, setShowModal] = useState(false);
@@ -19,21 +19,76 @@ const Players = () => {
     position: '',
     number: '',
   });
+  const [formError, setFormError] = useState('');
 
   useEffect(() => {
     dispatch(fetchPlayers());
-    dispatch(fetchTeams());
+    dispatch(fetchTeams()).then((result) => {
+      console.log('Teams fetch result:', result);
+    }).catch((error) => {
+      console.error('Teams fetch error:', error);
+    });
   }, [dispatch]);
 
+  // Debug teams data
+  useEffect(() => {
+    console.log('Teams state changed:', teams);
+    if (teams.length > 0) {
+      console.log('Available teams:', teams);
+      console.log('First team structure:', teams[0]);
+      console.log('All team IDs:', teams.map((team, idx) => ({
+        index: idx,
+        team: team,
+        id: team.id,
+        _id: team._id,
+        team_id: team.team_id,
+        teamId: team.teamId,
+        allKeys: Object.keys(team),
+        extractedId: team.id || team._id || team.team_id || team.teamId
+      })));
+    } else {
+      console.log('No teams available');
+    }
+  }, [teams]);
+
   const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    console.log(`Input change - ${name}:`, value);
+    
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [name]: value,
     });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setFormError('');
+    
+    console.log('Form submission data:', formData);
+    console.log('Selected team ID:', formData.teamId);
+    console.log('Available teams:', teams);
+    
+    // Validate required fields
+    if (!formData.firstName.trim() || !formData.lastName.trim() || !formData.teamId) {
+      setFormError('Please fill in all required fields');
+      return;
+    }
+    
+    // Check if the selected team exists
+    const selectedTeam = teams.find(team => {
+      const teamId = team.id || team._id || team.team_id || team.teamId;
+      console.log(`Comparing team ID ${teamId} with selected ${formData.teamId} (${typeof teamId} vs ${typeof formData.teamId})`);
+      return teamId == formData.teamId;
+    });
+    console.log('Selected team object:', selectedTeam);
+    
+    if (!selectedTeam) {
+      const availableIds = teams.map(t => t.id || t._id || t.team_id || t.teamId || 'undefined');
+      setFormError(`Selected team does not exist. Available teams: ${availableIds.join(', ')}`);
+      return;
+    }
+    
     try {
       if (editingPlayer) {
         await dispatch(updatePlayer({ id: editingPlayer.id || editingPlayer._id, playerData: formData })).unwrap();
@@ -51,6 +106,7 @@ const Players = () => {
       });
     } catch (error) {
       console.error('Failed to save player:', error);
+      setFormError(error.message || 'Failed to save player');
     }
   };
 
@@ -79,6 +135,7 @@ const Players = () => {
   const handleCloseModal = () => {
     setShowModal(false);
     setEditingPlayer(null);
+    setFormError('');
     setFormData({
       firstName: '',
       lastName: '',
@@ -116,10 +173,16 @@ const Players = () => {
         )}
       </div>
 
-      {/* Error Message */}
+      {/* Error Messages */}
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
-          {error}
+          Players Error: {error}
+        </div>
+      )}
+      
+      {teamsError && (
+        <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
+          Teams Error: {teamsError}
         </div>
       )}
 
@@ -220,6 +283,13 @@ const Players = () => {
               <h3 className="text-lg font-medium text-gray-900 mb-4">
                 {editingPlayer ? 'Edit Player' : 'Add New Player'}
               </h3>
+              
+              {formError && (
+                <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg mb-4">
+                  {formError}
+                </div>
+              )}
+              
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -265,13 +335,21 @@ const Players = () => {
                     value={formData.teamId}
                     onChange={handleInputChange}
                     className="input-field mt-1"
+                    disabled={teams.length === 0 || teamsLoading}
                   >
-                    <option value="">Select a team</option>
-                    {teams.map((team, idx) => (
-                      <option key={team.id || team._id || `team-${idx}`} value={team.id || team._id}>
-                        {team.name}
-                      </option>
-                    ))}
+                    <option value="">
+                      {teamsLoading ? 'Loading teams...' : teams.length === 0 ? 'No teams available' : 'Select a team'}
+                    </option>
+                    {teams.map((team, idx) => {
+                      // Try multiple possible ID field names
+                      const teamId = team.id || team._id || team.team_id || team.teamId;
+                      console.log(`Team ${idx}:`, team, 'ID:', teamId);
+                      return (
+                        <option key={teamId || `team-${idx}`} value={teamId || ''}>
+                          {team.name || team.team_name || `Team ${idx + 1}`}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
                 
@@ -323,6 +401,7 @@ const Players = () => {
                   <button
                     type="submit"
                     className="btn-primary"
+                    disabled={teams.length === 0 || teamsLoading}
                   >
                     {editingPlayer ? 'Update' : 'Create'}
                   </button>

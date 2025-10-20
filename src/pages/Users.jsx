@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchUsers, createUser, updateUser, deleteUser } from '../store/slices/usersSlice';
+import { fetchUsers, createUser, updateUser, deleteUser, verifyUserPermissions } from '../store/slices/usersSlice';
 import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 
 const Users = () => {
@@ -20,7 +20,20 @@ const Users = () => {
 
   useEffect(() => {
     dispatch(fetchUsers());
+    // Verify user permissions when component mounts
+    dispatch(verifyUserPermissions());
   }, [dispatch]);
+
+  // Verify user permissions before allowing access
+  useEffect(() => {
+    if (currentUser && !isAdmin) {
+      console.warn('User is not admin, access denied');
+    } else if (currentUser && isAdmin) {
+      console.log('User is admin, access granted');
+    } else {
+      console.warn('No user found, checking authentication state');
+    }
+  }, [currentUser, isAdmin]);
 
   const handleInputChange = (e) => {
     setFormData({
@@ -36,6 +49,9 @@ const Users = () => {
       if (editingUser && !userData.password) {
         delete userData.password; // Don't update password if empty
       }
+      
+      console.log('Submitting user data:', userData);
+      console.log('Current user role:', currentUser?.role);
       
       if (editingUser) {
         await dispatch(updateUser({ id: editingUser.id, userData })).unwrap();
@@ -53,6 +69,7 @@ const Users = () => {
       });
     } catch (error) {
       console.error('Failed to save user:', error);
+      // The error will be displayed in the error message section
     }
   };
 
@@ -95,7 +112,21 @@ const Users = () => {
     });
   };
 
-  const isAdmin = currentUser?.role === 'ADMIN';
+  const isAdmin = currentUser?.role === 'ADMIN' || currentUser?.role === 'admin' || currentUser?.role === 'Admin';
+
+  // Debug current user state
+  useEffect(() => {
+    console.log('Current user:', currentUser);
+    console.log('User role:', currentUser?.role);
+    console.log('Is admin:', isAdmin);
+    console.log('Authentication token:', localStorage.getItem('token'));
+    console.log('Full auth state:', {
+      user: currentUser,
+      token: localStorage.getItem('token'),
+      isAuthenticated: !!localStorage.getItem('token'),
+      userFromStorage: JSON.parse(localStorage.getItem('user') || 'null')
+    });
+  }, [currentUser, isAdmin]);
 
   if (!isAdmin) {
     return (
@@ -103,6 +134,9 @@ const Users = () => {
         <h3 className="text-lg font-medium text-gray-900">Access Denied</h3>
         <p className="mt-1 text-sm text-gray-500">
           You need admin privileges to access this page.
+        </p>
+        <p className="mt-2 text-xs text-gray-400">
+          Current role: {currentUser?.role || 'Not logged in'}
         </p>
       </div>
     );
