@@ -111,6 +111,8 @@ const teamsSlice = createSlice({
       })
       .addCase(fetchTeams.fulfilled, (state, action) => {
         state.loading = false;
+        console.log('Teams API response:', action.payload);
+        console.log('Teams data:', action.payload.data);
         state.teams = action.payload.data;
         state.error = null;
       })

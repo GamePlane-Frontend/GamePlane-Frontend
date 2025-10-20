@@ -2,9 +2,18 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../../services/api';
 
 function coerceTeamId(teamId) {
-  if (teamId == null) return teamId;
-  const isNumeric = typeof teamId === 'string' ? /^\d+$/.test(teamId) : typeof teamId === 'number';
-  return isNumeric ? Number(teamId) : teamId;
+  if (teamId == null || teamId === '') return null;
+  
+  // Convert to string first to handle both string and number inputs
+  const teamIdStr = String(teamId).trim();
+  
+  // Check if it's a valid numeric string
+  if (/^\d+$/.test(teamIdStr)) {
+    return Number(teamIdStr);
+  }
+  
+  // If it's not numeric, return the original value (could be a UUID or other format)
+  return teamId;
 }
 
 // Async thunks
@@ -48,16 +57,34 @@ export const createPlayer = createAsyncThunk(
   'players/createPlayer',
   async (playerData, { rejectWithValue }) => {
     try {
+      const coercedTeamId = coerceTeamId(playerData.teamId);
+      
+      // If team_id is null or undefined, reject the request
+      if (coercedTeamId == null) {
+        return rejectWithValue('Team is required to create a player');
+      }
+      
       const payload = {
         first_name: playerData.firstName,
         last_name: playerData.lastName,
         position: playerData.position || null,
         jersey_number: playerData.number ? Number(playerData.number) : null,
-        team_id: coerceTeamId(playerData.teamId),
+        team_id: coercedTeamId,
       };
+      
+      // Ensure team_id is not undefined
+      if (payload.team_id === undefined) {
+        payload.team_id = null;
+      }
+      
+      console.log('Creating player with payload:', payload);
+      console.log('Original playerData:', playerData);
+      console.log('Coerced team_id:', coercedTeamId);
+      
       const response = await api.post('/players', payload);
       return response.data;
     } catch (error) {
+      console.error('Create player error:', error.response?.data);
       return rejectWithValue(error.response?.data?.error || 'Failed to create player');
     }
   }
