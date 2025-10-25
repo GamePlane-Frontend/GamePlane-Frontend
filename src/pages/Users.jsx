@@ -18,24 +18,141 @@ const Users = () => {
     role: 'COACH',
   });
 
-  useEffect(() => {
-    dispatch(fetchUsers());
-    // Verify user permissions when component mounts
-    dispatch(verifyUserPermissions());
-  }, [dispatch]);
+  // Calculate isAdmin before using it in useEffect
+  const isAdmin = currentUser?.role === 'ADMIN' || currentUser?.role === 'admin' || currentUser?.role === 'Admin';
 
-  // Verify user permissions before allowing access
-  useEffect(() => {
-    if (currentUser && !isAdmin) {
-      console.warn('User is not admin, access denied');
-    } else if (currentUser && isAdmin) {
-      console.log('User is admin, access granted');
-    } else {
-      console.warn('No user found, checking authentication state');
+  // Debug function to check authentication status
+  const debugAuthStatus = () => {
+    const token = localStorage.getItem('token');
+    const user = localStorage.getItem('user');
+    
+    console.log('🔍 Authentication Debug:', {
+      hasToken: !!token,
+      tokenLength: token?.length,
+      hasUser: !!user,
+      userData: user ? JSON.parse(user) : null,
+      currentUser: currentUser,
+      isAdmin: isAdmin
+    });
+    
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        console.log('🔍 Token payload:', {
+          userId: payload.userId,
+          role: payload.role,
+          exp: payload.exp,
+          expDate: new Date(payload.exp * 1000).toISOString(),
+          isExpired: payload.exp < Math.floor(Date.now() / 1000)
+        });
+      } catch (error) {
+        console.error('❌ Error parsing token:', error);
+      }
     }
-  }, [currentUser, isAdmin]);
+  };
+
+  // Test function to check other API endpoints
+  const testOtherEndpoints = async () => {
+    console.log('🧪 Testing other API endpoints...');
+    
+    try {
+      // Test a simple endpoint first
+      const response = await fetch('http://localhost:3100/api/leagues', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      console.log('🧪 Leagues endpoint test:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('🧪 Leagues data:', data);
+      } else {
+        const errorData = await response.text();
+        console.log('🧪 Leagues error:', errorData);
+      }
+    } catch (error) {
+      console.error('🧪 Leagues test error:', error);
+    }
+  };
+
+  // Direct API test for user creation
+  const testDirectUserCreation = async () => {
+    console.log('🧪 Testing direct user creation API...');
+    
+    try {
+      const testUserData = {
+        firstName: 'Test',
+        lastName: 'User',
+        email: 'test@example.com',
+        password: 'test123',
+        role: 'COACH'
+      };
+      
+      const response = await fetch('http://localhost:3100/api/users', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(testUserData)
+      });
+      
+      console.log('🧪 Direct user creation test:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
+      });
+      
+      const responseData = await response.text();
+      console.log('🧪 Direct user creation response:', responseData);
+      
+    } catch (error) {
+      console.error('🧪 Direct user creation test error:', error);
+    }
+  };
+
+  useEffect(() => {
+    // Debug authentication status
+    debugAuthStatus();
+    
+    // Only make API calls if user is authenticated and we haven't loaded users yet
+    if (currentUser && users.length === 0 && !loading) {
+      console.log('Attempting to fetch users...', {
+        currentUser: currentUser?.role,
+        token: localStorage.getItem('token') ? 'Present' : 'Missing',
+        tokenLength: localStorage.getItem('token')?.length
+      });
+      dispatch(fetchUsers());
+    }
+  }, [dispatch, currentUser]);
+
+  // Handle authentication errors gracefully
+  useEffect(() => {
+    const handleAuthError = () => {
+      if (error && error.includes('404')) {
+        console.warn('Backend server not responding. Please check if the server is running.');
+      } else if (error && error.includes('401')) {
+        console.warn('Authentication required. Please log in.');
+      }
+    };
+    
+    handleAuthError();
+  }, [error]);
 
   const handleInputChange = (e) => {
+    console.log('Input change:', {
+      name: e.target.name,
+      value: e.target.value,
+      currentFormData: formData
+    });
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
@@ -51,7 +168,36 @@ const Users = () => {
       }
       
       console.log('Submitting user data:', userData);
+      console.log('Form data validation:', {
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        email: userData.email,
+        password: userData.password,
+        role: userData.role,
+        firstNameType: typeof userData.firstName,
+        firstNameLength: userData.firstName?.length,
+        firstNameTrimmed: userData.firstName?.trim(),
+        isEmpty: !userData.firstName?.trim()
+      });
       console.log('Current user role:', currentUser?.role);
+      
+      // Validate required fields
+      if (!userData.firstName?.trim()) {
+        alert('First name is required');
+        return;
+      }
+      if (!userData.lastName?.trim()) {
+        alert('Last name is required');
+        return;
+      }
+      if (!userData.email?.trim()) {
+        alert('Email is required');
+        return;
+      }
+      if (!editingUser && !userData.password?.trim()) {
+        alert('Password is required for new users');
+        return;
+      }
       
       if (editingUser) {
         await dispatch(updateUser({ id: editingUser.id, userData })).unwrap();
@@ -112,21 +258,45 @@ const Users = () => {
     });
   };
 
-  const isAdmin = currentUser?.role === 'ADMIN' || currentUser?.role === 'admin' || currentUser?.role === 'Admin';
-
-  // Debug current user state
+  // Initialize user from localStorage if not in Redux state
   useEffect(() => {
-    console.log('Current user:', currentUser);
-    console.log('User role:', currentUser?.role);
-    console.log('Is admin:', isAdmin);
-    console.log('Authentication token:', localStorage.getItem('token'));
-    console.log('Full auth state:', {
-      user: currentUser,
-      token: localStorage.getItem('token'),
-      isAuthenticated: !!localStorage.getItem('token'),
-      userFromStorage: JSON.parse(localStorage.getItem('user') || 'null')
-    });
-  }, [currentUser, isAdmin]);
+    if (!currentUser) {
+      const userFromStorage = JSON.parse(localStorage.getItem('user') || 'null');
+      if (userFromStorage) {
+        dispatch(verifyUserPermissions());
+      }
+    }
+  }, [dispatch, currentUser]);
+
+  // Show loading if user data is not yet loaded
+  if (!currentUser && !error) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+        <span className="ml-2 text-gray-600">Loading user data...</span>
+      </div>
+    );
+  }
+
+  // Redirect to login if no user
+  if (!currentUser) {
+    return (
+      <div className="text-center py-12">
+        <h3 className="text-lg font-medium text-gray-900">Authentication Required</h3>
+        <p className="mt-1 text-sm text-gray-500">
+          Please log in to access this page.
+        </p>
+        <div className="mt-4">
+          <a 
+            href="/login" 
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700"
+          >
+            Go to Login
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAdmin) {
     return (
@@ -138,27 +308,46 @@ const Users = () => {
         <p className="mt-2 text-xs text-gray-400">
           Current role: {currentUser?.role || 'Not logged in'}
         </p>
+        {!currentUser && (
+          <div className="mt-4">
+            <a 
+              href="/login" 
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700"
+            >
+              Go to Login
+            </a>
+          </div>
+        )}
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
+
       {/* Header */}
       <div className="md:flex md:items-center md:justify-between">
         <div className="flex-1 min-w-0">
           <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
             Users
           </h2>
-          <p className="mt-1 text-sm text-gray-500">
-            Manage system users and their roles
-          </p>
         </div>
-        <div className="mt-4 flex md:mt-0 md:ml-4">
+        <div className="mt-4 flex md:mt-0 md:ml-4 space-x-2">
+          <button
+            type="button"
+            onClick={() => {
+              console.log('Current form data:', formData);
+              console.log('Current user:', currentUser);
+              testDirectUserCreation();
+            }}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            Debug
+          </button>
           <button
             type="button"
             onClick={() => setShowModal(true)}
-            className="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+            className="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
             <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
             Add User
@@ -169,65 +358,85 @@ const Users = () => {
       {/* Error Message */}
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
-          {error}
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">
+                {error.includes('404') ? 'Backend Server Error' : 
+                 error.includes('401') ? 'Authentication Error' : 
+                 'Error'}
+              </h3>
+              <div className="mt-2 text-sm text-red-700">
+                <p>
+                  {error.includes('404') ? 'The backend server is not responding. Please check if the server is running on port 3100.' :
+                   error.includes('401') ? 'Authentication required. Please log in to access this page.' :
+                   error}
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
       {/* Users List */}
       {loading ? (
         <div className="flex justify-center items-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
       ) : (
-        <div className="bg-white shadow overflow-hidden sm:rounded-md">
-          <ul className="divide-y divide-gray-200">
-            {users.map((user) => (
-              <li key={user.id}>
-                <div className="px-4 py-4 flex items-center justify-between">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {users.map((user) => (
+            <div key={user.id} className="bg-white overflow-hidden shadow rounded-lg border border-gray-200">
+              <div className="p-6">
+                <div className="flex items-start justify-between">
                   <div className="flex items-center">
                     <div className="flex-shrink-0">
-                      <div className="h-10 w-10 bg-gray-300 rounded-full flex items-center justify-center">
-                        <span className="text-sm font-medium text-gray-700">
+                      <div className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center">
+                        <span className="text-sm font-bold text-blue-600">
                           {user.firstName?.[0]}{user.lastName?.[0]}
                         </span>
                       </div>
                     </div>
                     <div className="ml-4">
-                      <div className="text-sm font-medium text-gray-900">
+                      <h3 className="text-lg font-semibold text-gray-900">
                         {user.firstName} {user.lastName}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {user.email}
-                      </div>
+                      </h3>
+                      <p className="text-sm text-gray-500">{user.email}</p>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      user.role === 'ADMIN' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
-                    }`}>
-                      {user.role}
-                    </span>
-                    <div className="flex space-x-1">
-                      <button
-                        onClick={() => handleEdit(user)}
-                        className="text-primary-600 hover:text-primary-900"
-                      >
-                        <PencilIcon className="h-4 w-4" />
-                      </button>
-                      {user.id !== currentUser?.id && (
-                        <button
-                          onClick={() => handleDelete(user.id)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          <TrashIcon className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    user.role === 'ADMIN' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
+                  }`}>
+                    {user.role}
+                  </span>
+                </div>
+                
+                <div className="mt-6 grid grid-cols-2 gap-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-gray-900">12</div>
+                    <div className="text-sm text-gray-500">Leagues</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-gray-900">8</div>
+                    <div className="text-sm text-gray-500">Teams</div>
                   </div>
                 </div>
-              </li>
-            ))}
-          </ul>
+                
+                <div className="mt-6 flex space-x-3">
+                  <button className="flex-1 bg-white border border-gray-300 rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    View Profile
+                  </button>
+                  <button className="flex-1 bg-blue-600 border border-transparent rounded-md px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Edit
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 

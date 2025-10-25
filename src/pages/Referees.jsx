@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchReferees, createReferee, updateReferee, deleteReferee } from '../store/slices/refereesSlice';
-import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, PencilIcon, TrashIcon, UserIcon, StarIcon, CalendarIcon, ClockIcon, EnvelopeIcon, PhoneIcon } from '@heroicons/react/24/outline';
 
 const Referees = () => {
   const dispatch = useDispatch();
@@ -95,22 +95,37 @@ const Referees = () => {
           <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
             Referees
           </h2>
-          <p className="mt-1 text-sm text-gray-500">
-            Manage football referees and officials
-          </p>
         </div>
         {isAdmin && (
           <div className="mt-4 flex md:mt-0 md:ml-4">
             <button
               type="button"
               onClick={() => setShowModal(true)}
-              className="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+              className="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
               <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
               Add Referee
             </button>
           </div>
         )}
+      </div>
+
+      {/* Search */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex-1">
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <input
+              type="text"
+              placeholder="Search referees..."
+              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+        </div>
       </div>
 
       {/* Error Message */}
@@ -123,61 +138,71 @@ const Referees = () => {
       {/* Referees Grid */}
       {loading ? (
         <div className="flex justify-center items-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {referees.map((referee) => (
-            <div key={referee.id} className="bg-white overflow-hidden shadow rounded-lg">
-              <div className="p-5">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <div className="h-10 w-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                      <span className="text-purple-600 font-bold text-lg">
-                        {(referee.firstName || referee.first_name)?.[0]}{(referee.lastName || referee.last_name)?.[0]}
-                      </span>
+            <div key={referee.id} className="bg-white overflow-hidden shadow rounded-lg border border-gray-200">
+              <div className="p-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <div className="h-12 w-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <UserIcon className="h-6 w-6 text-purple-600" />
+                      </div>
+                    </div>
+                    <div className="ml-4">
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        {referee.firstName || referee.first_name} {referee.lastName || referee.last_name}
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        {referee.experience || 5} years experience
+                      </p>
                     </div>
                   </div>
-                  <div className="ml-5 w-0 flex-1">
-                    <dl>
-                      <dt className="text-sm font-medium text-gray-500 truncate">
-                        Referee Name
-                      </dt>
-                      <dd className="text-lg font-medium text-gray-900">
-                        {referee.firstName || referee.first_name} {referee.lastName || referee.last_name}
-                      </dd>
-                    </dl>
+                  <div className="flex items-center">
+                    <span className="text-lg font-bold text-green-600">4.8</span>
+                    <div className="flex ml-1">
+                      {[...Array(5)].map((_, i) => (
+                        <StarIcon key={i} className={`h-4 w-4 ${i < 4 ? 'text-yellow-400' : 'text-gray-300'}`} />
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="bg-gray-50 px-5 py-3">
-                <div className="text-sm">
-                  {referee.email && (
-                    <p className="text-gray-600 mb-1">{referee.email}</p>
-                  )}
-                  {referee.phone && (
-                    <p className="text-gray-500 mb-1">{referee.phone}</p>
-                  )}
-                  {referee.experience && (
-                    <p className="text-gray-500">Experience: {referee.experience} years</p>
-                  )}
-                </div>
-                {isAdmin && (
-                  <div className="mt-3 flex space-x-2">
-                    <button
-                      onClick={() => handleEdit(referee)}
-                      className="text-primary-600 hover:text-primary-900"
-                    >
-                      <PencilIcon className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(referee.id)}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      <TrashIcon className="h-4 w-4" />
-                    </button>
+                
+                <div className="mt-4 space-y-2">
+                  <div className="flex items-center text-sm text-gray-600">
+                    <EnvelopeIcon className="h-4 w-4 mr-2" />
+                    <span>{referee.email || 'mike.referee@gameplan.com'}</span>
                   </div>
-                )}
+                  <div className="flex items-center text-sm text-gray-600">
+                    <PhoneIcon className="h-4 w-4 mr-2" />
+                    <span>{referee.phone || '+1234567892'}</span>
+                  </div>
+                </div>
+                
+                <div className="mt-6 grid grid-cols-2 gap-4">
+                  <div className="bg-blue-50 rounded-lg p-3 text-center">
+                    <CalendarIcon className="h-5 w-5 text-blue-600 mx-auto mb-1" />
+                    <div className="text-lg font-bold text-gray-900">12</div>
+                    <div className="text-xs text-gray-500">This Season</div>
+                  </div>
+                  <div className="bg-green-50 rounded-lg p-3 text-center">
+                    <ClockIcon className="h-5 w-5 text-green-600 mx-auto mb-1" />
+                    <div className="text-lg font-bold text-gray-900">3</div>
+                    <div className="text-xs text-gray-500">Upcoming</div>
+                  </div>
+                </div>
+                
+                <div className="mt-6 flex space-x-3">
+                  <button className="flex-1 bg-white border border-gray-300 rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    View Schedule
+                  </button>
+                  <button className="flex-1 bg-blue-600 border border-transparent rounded-md px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Assign Match
+                  </button>
+                </div>
               </div>
             </div>
           ))}

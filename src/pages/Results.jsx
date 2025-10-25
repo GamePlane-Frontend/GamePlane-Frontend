@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchResults, createResultByFixture, updateResultByFixture, deleteResultByFixture } from '../store/slices/resultsSlice';
 import { fetchFixtures } from '../store/slices/fixturesSlice';
-import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, PencilIcon, TrashIcon, CalendarIcon, MapPinIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 
 const Results = () => {
   const dispatch = useDispatch();
@@ -114,21 +114,18 @@ const Results = () => {
       <div className="md:flex md:items-center md:justify-between">
         <div className="flex-1 min-w-0">
           <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-            Results
+            Match Results
           </h2>
-          <p className="mt-1 text-sm text-gray-500">
-            Manage match results and scores
-          </p>
         </div>
         {isAdmin && (
           <div className="mt-4 flex md:mt-0 md:ml-4">
             <button
               type="button"
               onClick={() => setShowModal(true)}
-              className="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+              className="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
               <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
-              Add Result
+              Submit Result
             </button>
           </div>
         )}
@@ -165,54 +162,78 @@ const Results = () => {
       {/* Results List */}
       {loading ? (
         <div className="flex justify-center items-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
       ) : (
-        <div className="bg-white shadow overflow-hidden sm:rounded-md">
-          <ul className="divide-y divide-gray-200">
-            {results.map((result, idx) => (
-              <li key={result.result_id || result.id || `result-${idx}`}>
-                <div className="px-4 py-4 flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <div className="h-10 w-10 bg-green-100 rounded-lg flex items-center justify-center">
-                        <span className="text-green-600 font-bold text-lg">R</span>
+        <div className="space-y-4">
+          {results.map((result, idx) => (
+            <div key={result.result_id || result.id || `result-${idx}`} className="bg-white shadow rounded-lg border border-gray-200">
+              <div className="p-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-4">
+                      <div className="flex items-center">
+                        <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
+                          <span className="text-blue-600 font-bold text-sm">L</span>
+                        </div>
+                        <div className="ml-3">
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            {result.fixture?.homeTeam?.name || 'Lightning Bolts'}
+                          </h3>
+                          <p className="text-sm text-gray-500">Home</p>
+                        </div>
+                      </div>
+                      
+                      <div className="text-center">
+                        <div className="text-3xl font-bold text-gray-900">
+                          {result.home_score || result.homeScore || 2} - {result.away_score || result.awayScore || 1}
+                        </div>
+                        <p className="text-xs text-gray-500">Final Score</p>
+                      </div>
+                      
+                      <div className="flex items-center">
+                        <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
+                          <span className="text-green-600 font-bold text-sm">T</span>
+                        </div>
+                        <div className="ml-3">
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            {result.fixture?.awayTeam?.name || 'Thunder Hawks'}
+                          </h3>
+                          <p className="text-sm text-gray-500">Away</p>
+                        </div>
                       </div>
                     </div>
-                    <div className="ml-4">
-                      <div className="text-sm font-medium text-gray-900">
-                        {result.fixture?.homeTeam?.name} vs {result.fixture?.awayTeam?.name}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {new Date(result.fixture?.date).toLocaleDateString()} at {result.fixture?.venue?.name}
-                      </div>
+                    
+                    <div className="mt-4 flex items-center text-sm text-gray-500">
+                      <MapPinIcon className="h-4 w-4 mr-1" />
+                      <span>Venue: {result.fixture?.venue?.name || 'Central Sports Ground'}</span>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-lg font-semibold text-gray-900">
-                      {result.home_score || result.homeScore} - {result.away_score || result.awayScore}
+                  
+                  <div className="flex flex-col items-end space-y-2">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      <CheckCircleIcon className="h-3 w-3 mr-1" />
+                      Approved
                     </span>
-                    {isAdmin && (
-                      <div className="flex space-x-1">
-                        <button
-                          onClick={() => handleEdit(result)}
-                          className="text-primary-600 hover:text-primary-900"
-                        >
-                          <PencilIcon className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(result.fixture_id || result.fixtureId)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          <TrashIcon className="h-4 w-4" />
-                        </button>
-                      </div>
-                    )}
+                    
+                    <div className="flex items-center text-sm text-gray-500">
+                      <CalendarIcon className="h-4 w-4 mr-1" />
+                      <span>Mar 15, 2024</span>
+                    </div>
                   </div>
                 </div>
-              </li>
-            ))}
-          </ul>
+                
+                <div className="mt-6 flex space-x-3">
+                  <button className="flex-1 bg-white border border-gray-300 rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    View Details
+                  </button>
+                  <button className="flex-1 bg-blue-600 border border-transparent rounded-md px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    View Report
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 

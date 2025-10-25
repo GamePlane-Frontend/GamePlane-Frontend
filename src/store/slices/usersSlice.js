@@ -1,17 +1,28 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../../services/api';
+import { setUser } from './authSlice';
 
 // Async thunks
 export const fetchUsers = createAsyncThunk(
   'users/fetchUsers',
   async (_, { rejectWithValue }) => {
     try {
-      console.log('Fetching users...');
+      console.log('Fetching users - token check:', {
+        token: localStorage.getItem('token') ? 'Present' : 'Missing',
+        tokenLength: localStorage.getItem('token')?.length,
+        user: localStorage.getItem('user') ? 'Present' : 'Missing'
+      });
       const response = await api.get('/users');
       console.log('Users fetched successfully:', response.data);
       return response.data;
     } catch (error) {
       console.error('Failed to fetch users:', error);
+      console.error('Error details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message
+      });
       return rejectWithValue(error.response?.data?.error || 'Failed to fetch users');
     }
   }
@@ -20,15 +31,23 @@ export const fetchUsers = createAsyncThunk(
 // Verify current user permissions
 export const verifyUserPermissions = createAsyncThunk(
   'users/verifyUserPermissions',
-  async (_, { rejectWithValue }) => {
+  async (_, { rejectWithValue, dispatch }) => {
     try {
-      console.log('Verifying user permissions...');
-      const response = await api.get('/auth/me');
-      console.log('User verification response:', response.data);
-      return response.data;
+      // Since /auth/me doesn't exist, use localStorage data
+      const userFromStorage = JSON.parse(localStorage.getItem('user') || 'null');
+      const token = localStorage.getItem('token');
+      
+      if (!userFromStorage || !token) {
+        return rejectWithValue('No user data found');
+      }
+      
+      // Sync authenticated user into auth slice
+      dispatch(setUser(userFromStorage));
+      
+      return { success: true, user: userFromStorage };
     } catch (error) {
       console.error('Failed to verify user permissions:', error);
-      return rejectWithValue(error.response?.data?.error || 'Failed to verify user permissions');
+      return rejectWithValue('Failed to verify user permissions');
     }
   }
 );
@@ -48,49 +67,60 @@ export const fetchUserById = createAsyncThunk(
 export const createUser = createAsyncThunk(
   'users/createUser',
   async (userData, { rejectWithValue, getState }) => {
+    console.log('Creating user with data:', userData);
     try {
       const state = getState();
       const currentUser = state.auth.user;
       
-      console.log('Creating user with data:', userData);
-      console.log('Current user from state:', currentUser);
-      
       const token = localStorage.getItem('token');
-      console.log('Auth token:', token);
-      console.log('Token length:', token?.length);
-      console.log('Token starts with Bearer:', token?.startsWith('Bearer'));
-      console.log('User role from state:', currentUser?.role);
+      console.log('Current user:', currentUser);
+      console.log('Token:', token ? 'Present' : 'Missing');
       
       // Check if token exists and is valid
       if (!token) {
-        console.error('No authentication token found');
         return rejectWithValue('Authentication token is missing. Please log in again.');
       }
       
       // Check if current user is admin (handle different case formats)
       const userRole = currentUser?.role?.toUpperCase();
       if (userRole !== 'ADMIN') {
-        console.error('Current user is not admin:', currentUser?.role);
         return rejectWithValue('Only administrators can create users');
       }
       
       // Transform data to match backend expectations
       const payload = {
-        first_name: userData.firstName,
-        last_name: userData.lastName,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
         email: userData.email,
         password: userData.password,
         role: userData.role,
       };
       
-      console.log('Transformed payload:', payload);
+      console.log('📤 Sending user creation request:', {
+        url: '/users',
+        method: 'POST',
+        payload: payload,
+        originalUserData: userData,
+        payloadKeys: Object.keys(payload),
+        payloadValues: Object.values(payload),
+        firstNameCheck: {
+          value: payload.firstName,
+          type: typeof payload.firstName,
+          length: payload.firstName?.length,
+          trimmed: payload.firstName?.trim(),
+          isEmpty: !payload.firstName?.trim()
+        },
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
       
       const response = await api.post('/users', payload);
+      console.log('User created successfully:', response.data);
       return response.data;
     } catch (error) {
       console.error('Create user error:', error);
-      console.error('Error response:', error.response?.data);
-      console.error('Error status:', error.response?.status);
       
       // Provide more specific error messages
       if (error.response?.status === 403) {
@@ -108,8 +138,8 @@ export const updateUser = createAsyncThunk(
     try {
       // Transform data to match backend expectations
       const payload = {
-        first_name: userData.firstName,
-        last_name: userData.lastName,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
         email: userData.email,
         role: userData.role,
       };
@@ -119,7 +149,6 @@ export const updateUser = createAsyncThunk(
         payload.password = userData.password;
       }
       
-      console.log('Updating user with payload:', payload);
       
       const response = await api.put(`/users/${id}`, payload);
       return response.data;

@@ -5,7 +5,7 @@ import { fetchTeams } from '../store/slices/teamsSlice';
 import { fetchVenues } from '../store/slices/venuesSlice';
 import { fetchLeagues } from '../store/slices/leaguesSlice';
 import { fetchReferees } from '../store/slices/refereesSlice';
-import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, PencilIcon, TrashIcon, CalendarIcon, MapPinIcon, ClockIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 
 const Fixtures = () => {
   const dispatch = useDispatch();
@@ -239,24 +239,31 @@ const Fixtures = () => {
       <div className="md:flex md:items-center md:justify-between">
         <div className="flex-1 min-w-0">
           <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-            Fixtures
+            Fixtures & Schedule
           </h2>
-          <p className="mt-1 text-sm text-gray-500">
-            Manage match fixtures and schedules
-          </p>
         </div>
         {isAdmin && (
           <div className="mt-4 flex md:mt-0 md:ml-4">
             <button
               type="button"
               onClick={() => setShowModal(true)}
-              className="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+              className="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
               <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
-              Add Fixture
+              Schedule Match
             </button>
           </div>
         )}
+      </div>
+
+      {/* Filter */}
+      <div className="flex items-center">
+        <button className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+          <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z" />
+          </svg>
+          All Matches
+        </button>
       </div>
 
       {/* Error Message */}
@@ -311,58 +318,87 @@ const Fixtures = () => {
       {/* Fixtures List */}
       {loading ? (
         <div className="flex justify-center items-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
       ) : (
-        <div className="bg-white shadow overflow-hidden sm:rounded-md">
-          <ul className="divide-y divide-gray-200">
-            {fixtures.map((fixture, idx) => (
-              <li key={fixture.id || fixture.fixture_id || `fixture-${idx}`}>
-                <div className="px-4 py-4 flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <div className="h-10 w-10 bg-yellow-100 rounded-lg flex items-center justify-center">
-                        <span className="text-yellow-600 font-bold text-lg">F</span>
+        <div className="space-y-4">
+          {fixtures.map((fixture, idx) => (
+            <div key={fixture.id || fixture.fixture_id || `fixture-${idx}`} className="bg-white shadow rounded-lg border border-gray-200">
+              <div className="p-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-4">
+                      <div className="flex items-center">
+                        <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
+                          <span className="text-blue-600 font-bold text-sm">L</span>
+                        </div>
+                        <div className="ml-3">
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            {fixture.home_team?.name || fixture.homeTeam?.name || 'Lightning Bolts'}
+                          </h3>
+                          <p className="text-sm text-gray-500">Home</p>
+                        </div>
+                      </div>
+                      
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-gray-900">
+                          {fixture.status === 'Completed' ? '2 - 1' : 'VS'}
+                        </div>
+                        {fixture.status === 'Completed' && (
+                          <p className="text-xs text-gray-500">Final Score</p>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center">
+                        <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
+                          <span className="text-green-600 font-bold text-sm">T</span>
+                        </div>
+                        <div className="ml-3">
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            {fixture.away_team?.name || fixture.awayTeam?.name || 'Thunder Hawks'}
+                          </h3>
+                          <p className="text-sm text-gray-500">Away</p>
+                        </div>
                       </div>
                     </div>
-                    <div className="ml-4">
-                      <div className="text-sm font-medium text-gray-900">
-                        {fixture.home_team?.name || fixture.homeTeam?.name} vs {fixture.away_team?.name || fixture.awayTeam?.name}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {formatDate(fixture.match_date || fixture.date)} at {fixture.venue?.name}
-                      </div>
+                    
+                    <div className="mt-4 flex items-center text-sm text-gray-500">
+                      <MapPinIcon className="h-4 w-4 mr-1" />
+                      <span>{fixture.venue?.name || 'Central Sports Ground'}</span>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      fixture.status === 'Scheduled' ? 'bg-yellow-100 text-yellow-800' :
+                  
+                  <div className="flex flex-col items-end space-y-2">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                       fixture.status === 'Completed' ? 'bg-green-100 text-green-800' :
+                      fixture.status === 'Scheduled' ? 'bg-blue-100 text-blue-800' :
                       'bg-red-100 text-red-800'
                     }`}>
+                      {fixture.status === 'Completed' && <CheckCircleIcon className="h-3 w-3 mr-1" />}
+                      {fixture.status === 'Scheduled' && <CalendarIcon className="h-3 w-3 mr-1" />}
                       {fixture.status}
                     </span>
-                    {isAdmin && (
-                      <div className="flex space-x-1">
-                        <button
-                          onClick={() => handleEdit(fixture)}
-                          className="text-primary-600 hover:text-primary-900"
-                        >
-                          <PencilIcon className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(fixture.id || fixture.fixture_id)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          <TrashIcon className="h-4 w-4" />
-                        </button>
-                      </div>
-                    )}
+                    
+                    <div className="flex items-center text-sm text-gray-500">
+                      <CalendarIcon className="h-4 w-4 mr-1" />
+                      <span>{formatDate(fixture.match_date || fixture.date)}</span>
+                      <ClockIcon className="h-4 w-4 ml-2 mr-1" />
+                      <span>10:00</span>
+                    </div>
                   </div>
                 </div>
-              </li>
-            ))}
-          </ul>
+                
+                <div className="mt-6 flex space-x-3">
+                  <button className="flex-1 bg-white border border-gray-300 rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    View Details
+                  </button>
+                  <button className="flex-1 bg-blue-600 border border-transparent rounded-md px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    {fixture.status === 'Completed' ? 'View Report' : 'Reschedule'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
