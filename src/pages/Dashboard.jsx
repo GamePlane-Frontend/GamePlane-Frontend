@@ -17,6 +17,8 @@ import {
   CalendarIcon,
   ChartBarIcon,
   PlusIcon,
+  ArrowUpIcon,
+  InformationCircleIcon,
 } from '@heroicons/react/24/outline';
 
 const Dashboard = () => {
@@ -36,8 +38,9 @@ const Dashboard = () => {
 
   const stats = [
     {
-      name: 'Total Leagues',
+      name: 'Active Leagues',
       value: leagues.length,
+      change: '+12%',
       icon: TrophyIcon,
       color: 'bg-blue-500',
       href: '/leagues',
@@ -45,6 +48,7 @@ const Dashboard = () => {
     {
       name: 'Total Teams',
       value: teams.length,
+      change: '+8%',
       icon: UserGroupIcon,
       color: 'bg-green-500',
       href: '/teams',
@@ -52,13 +56,15 @@ const Dashboard = () => {
     {
       name: 'Upcoming Fixtures',
       value: fixtures.filter(f => f.status === 'Scheduled').length,
+      change: '+15%',
       icon: CalendarIcon,
-      color: 'bg-yellow-500',
+      color: 'bg-orange-500',
       href: '/fixtures',
     },
     {
-      name: 'Completed Matches',
+      name: 'Matches Played',
       value: results.length,
+      change: '+23%',
       icon: ChartBarIcon,
       color: 'bg-purple-500',
       href: '/results',
@@ -105,15 +111,15 @@ const Dashboard = () => {
       <div className="md:flex md:items-center md:justify-between">
         <div className="flex-1 min-w-0">
           <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-            Welcome back, {user?.firstName}!
+            Admin Dashboard
           </h2>
           <p className="mt-1 text-sm text-gray-500">
-            Here's what's happening with your GamePlan system today.
+            Welcome back! Here's what's happening in your leagues.
           </p>
         </div>
       </div>
 
-      {/* Stats */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => {
           const Icon = stat.icon;
@@ -135,172 +141,184 @@ const Dashboard = () => {
                 <p className="text-2xl font-semibold text-gray-900">
                   {stat.value}
                 </p>
+                <div className="ml-2 flex items-baseline text-sm font-semibold text-green-600">
+                  <ArrowUpIcon className="self-center flex-shrink-0 h-3 w-3 text-green-500" />
+                  <span className="sr-only">Increased by</span>
+                  {stat.change}
+                </div>
               </dd>
             </Link>
           );
         })}
       </div>
 
-      {/* Quick Actions */}
-      <div className="bg-white shadow rounded-lg">
-        <div className="px-4 py-5 sm:p-6">
-          <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
-            Quick Actions
-          </h3>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {quickActions.map((action) => {
-              const Icon = action.icon;
-              return (
-                <Link
-                  key={action.name}
-                  to={action.href}
-                  className="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary-500 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
-                >
-                  <div>
-                    <span className={`${action.color} rounded-lg inline-flex p-3 ring-4 ring-white`}>
-                      <Icon className="h-6 w-6 text-white" />
-                    </span>
-                  </div>
-                  <div className="mt-8">
-                    <h3 className="text-lg font-medium">
-                      <span className="absolute inset-0" />
-                      {action.name}
-                    </h3>
-                    <p className="mt-2 text-sm text-gray-500">
-                      {action.description}
-                    </p>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* Recent Activity */}
+      {/* Recent Activity and League Standings */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Recent Fixtures */}
+        {/* Recent Activity */}
         <div className="bg-white shadow rounded-lg">
           <div className="px-4 py-5 sm:p-6">
-            <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
-              Recent Fixtures
-            </h3>
-            <div className="flow-root">
-              <ul className="-mb-8">
-                {recentFixtures.length > 0 ? (
-                  recentFixtures.map((fixture, index) => (
-                    <li key={fixture.id}>
-                      <div className="relative pb-8">
-                        {index !== recentFixtures.length - 1 ? (
-                          <span
-                            className="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200"
-                            aria-hidden="true"
-                          />
-                        ) : null}
-                        <div className="relative flex space-x-3">
-                          <div>
-                            <span className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center ring-8 ring-white">
-                              <CalendarIcon className="h-5 w-5 text-white" />
-                            </span>
-                          </div>
-                          <div className="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4">
-                            <div>
-                              <p className="text-sm text-gray-500">
-                                {fixture.homeTeam?.name} vs {fixture.awayTeam?.name}
-                              </p>
-                              <p className="text-xs text-gray-400">
-                                {new Date(fixture.date).toLocaleDateString()} at {fixture.venue?.name}
-                              </p>
-                            </div>
-                            <div className="text-right text-sm whitespace-nowrap text-gray-500">
-                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                fixture.status === 'Scheduled' ? 'bg-yellow-100 text-yellow-800' :
-                                fixture.status === 'Completed' ? 'bg-green-100 text-green-800' :
-                                'bg-red-100 text-red-800'
-                              }`}>
-                                {fixture.status}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </li>
-                  ))
-                ) : (
-                  <li className="text-sm text-gray-500">No fixtures found</li>
-                )}
-              </ul>
+            <div className="flex items-center">
+              <h3 className="text-lg leading-6 font-medium text-gray-900">
+                Recent Activity
+              </h3>
+              <InformationCircleIcon className="ml-2 h-4 w-4 text-gray-400" />
             </div>
-            <div className="mt-6">
-              <Link
-                to="/fixtures"
-                className="w-full flex justify-center items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-              >
-                View all fixtures
-              </Link>
+            <div className="flow-root mt-4">
+              <ul className="-mb-8">
+                <li>
+                  <div className="relative pb-8">
+                    <div className="relative flex space-x-3">
+                      <div>
+                        <span className="h-8 w-8 rounded-full bg-green-500 flex items-center justify-center ring-8 ring-white">
+                          <span className="text-white text-xs font-bold">✓</span>
+                        </span>
+                      </div>
+                      <div className="min-w-0 flex-1 pt-1.5">
+                        <p className="text-sm text-gray-500">
+                          New team "Storm Eagles" registered
+                        </p>
+                        <p className="text-xs text-gray-400">2 hours ago</p>
+                      </div>
+                    </div>
+                  </div>
+                </li>
+                <li>
+                  <div className="relative pb-8">
+                    <span className="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true" />
+                    <div className="relative flex space-x-3">
+                      <div>
+                        <span className="h-8 w-8 rounded-full bg-yellow-500 flex items-center justify-center ring-8 ring-white">
+                          <span className="text-white text-xs font-bold">!</span>
+                        </span>
+                      </div>
+                      <div className="min-w-0 flex-1 pt-1.5">
+                        <p className="text-sm text-gray-500">
+                          Match result submitted for approval
+                        </p>
+                        <p className="text-xs text-gray-400">4 hours ago</p>
+                      </div>
+                    </div>
+                  </div>
+                </li>
+                <li>
+                  <div className="relative pb-8">
+                    <span className="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true" />
+                    <div className="relative flex space-x-3">
+                      <div>
+                        <span className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center ring-8 ring-white">
+                          <span className="text-white text-xs font-bold">S</span>
+                        </span>
+                      </div>
+                      <div className="min-w-0 flex-1 pt-1.5">
+                        <p className="text-sm text-gray-500">
+                          Season "2024 Spring" started
+                        </p>
+                        <p className="text-xs text-gray-400">1 day ago</p>
+                      </div>
+                    </div>
+                  </div>
+                </li>
+                <li>
+                  <div className="relative">
+                    <span className="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true" />
+                    <div className="relative flex space-x-3">
+                      <div>
+                        <span className="h-8 w-8 rounded-full bg-green-500 flex items-center justify-center ring-8 ring-white">
+                          <span className="text-white text-xs font-bold">R</span>
+                        </span>
+                      </div>
+                      <div className="min-w-0 flex-1 pt-1.5">
+                        <p className="text-sm text-gray-500">
+                          Referee assigned to upcoming match
+                        </p>
+                        <p className="text-xs text-gray-400">2 days ago</p>
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              </ul>
             </div>
           </div>
         </div>
 
-        {/* Recent Results */}
+        {/* League Standings */}
         <div className="bg-white shadow rounded-lg">
           <div className="px-4 py-5 sm:p-6">
-            <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
-              Recent Results
+            <h3 className="text-lg leading-6 font-medium text-gray-900">
+              League Standings
             </h3>
-            <div className="flow-root">
-              <ul className="-mb-8">
-                {recentResults.length > 0 ? (
-                  recentResults.map((result, index) => (
-                    <li key={result.id}>
-                      <div className="relative pb-8">
-                        {index !== recentResults.length - 1 ? (
-                          <span
-                            className="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200"
-                            aria-hidden="true"
-                          />
-                        ) : null}
-                        <div className="relative flex space-x-3">
-                          <div>
-                            <span className="h-8 w-8 rounded-full bg-green-500 flex items-center justify-center ring-8 ring-white">
-                              <ChartBarIcon className="h-5 w-5 text-white" />
-                            </span>
-                          </div>
-                          <div className="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4">
-                            <div>
-                              <p className="text-sm text-gray-500">
-                                {result.fixture?.homeTeam?.name} vs {result.fixture?.awayTeam?.name}
-                              </p>
-                              <p className="text-xs text-gray-400">
-                                {new Date(result.fixture?.date).toLocaleDateString()}
-                              </p>
-                            </div>
-                            <div className="text-right text-sm whitespace-nowrap text-gray-500">
-                              <span className="font-semibold">
-                                {result.homeScore} - {result.awayScore}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
+            <div className="mt-4">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <div className="h-8 w-8 bg-yellow-100 rounded-full flex items-center justify-center">
+                        <TrophyIcon className="h-4 w-4 text-yellow-600" />
                       </div>
-                    </li>
-                  ))
-                ) : (
-                  <li className="text-sm text-gray-500">No results found</li>
-                )}
-              </ul>
-            </div>
-            <div className="mt-6">
-              <Link
-                to="/results"
-                className="w-full flex justify-center items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-              >
-                View all results
-              </Link>
+                    </div>
+                    <div className="ml-3">
+                      <p className="text-sm font-medium text-gray-900">Lightning Bolts</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-gray-900">19 pts</p>
+                    <p className="text-xs text-gray-500">8 played</p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <div className="h-8 w-8 bg-gray-100 rounded-full flex items-center justify-center">
+                        <span className="text-xs font-bold text-gray-600">2</span>
+                      </div>
+                    </div>
+                    <div className="ml-3">
+                      <p className="text-sm font-medium text-gray-900">Thunder Hawks</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-gray-900">17 pts</p>
+                    <p className="text-xs text-gray-500">8 played</p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <div className="h-8 w-8 bg-orange-100 rounded-full flex items-center justify-center">
+                        <span className="text-xs font-bold text-orange-600">3</span>
+                      </div>
+                    </div>
+                    <div className="ml-3">
+                      <p className="text-sm font-medium text-gray-900">Fire Dragons</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-gray-900">12 pts</p>
+                    <p className="text-xs text-gray-500">8 played</p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <div className="h-8 w-8 bg-gray-100 rounded-full flex items-center justify-center">
+                        <span className="text-xs font-bold text-gray-600">4</span>
+                      </div>
+                    </div>
+                    <div className="ml-3">
+                      <p className="text-sm font-medium text-gray-900">Storm Eagles</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-gray-900">5 pts</p>
+                    <p className="text-xs text-gray-500">8 played</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
+
     </div>
   );
 };

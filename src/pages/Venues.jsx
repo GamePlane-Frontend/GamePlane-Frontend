@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchVenues, createVenue, updateVenue, deleteVenue } from '../store/slices/venuesSlice';
-import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, PencilIcon, TrashIcon, MapPinIcon, UserGroupIcon, CalendarIcon, TruckIcon, BuildingOfficeIcon, UserIcon } from '@heroicons/react/24/outline';
 
 const Venues = () => {
   const dispatch = useDispatch();
@@ -103,22 +103,37 @@ const Venues = () => {
           <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
             Venues
           </h2>
-          <p className="mt-1 text-sm text-gray-500">
-            Manage football venues and stadiums
-          </p>
         </div>
         {isAdmin && (
           <div className="mt-4 flex md:mt-0 md:ml-4">
             <button
               type="button"
               onClick={() => setShowModal(true)}
-              className="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+              className="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
               <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
               Add Venue
             </button>
           </div>
         )}
+      </div>
+
+      {/* Search */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex-1">
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <input
+              type="text"
+              placeholder="Search venues..."
+              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+        </div>
       </div>
 
       {/* Error Message */}
@@ -131,59 +146,78 @@ const Venues = () => {
       {/* Venues Grid */}
       {loading ? (
         <div className="flex justify-center items-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {venues.map((venue) => (
-            <div key={venue.venue_id || venue.id} className="bg-white overflow-hidden shadow rounded-lg">
-              <div className="p-5">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <div className="h-10 w-10 bg-indigo-100 rounded-lg flex items-center justify-center">
-                      <span className="text-indigo-600 font-bold text-lg">V</span>
+            <div key={venue.venue_id || venue.id} className="bg-white overflow-hidden shadow rounded-lg border border-gray-200">
+              <div className="p-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      {venue.name}
+                    </h3>
+                    <div className="mt-2 flex items-center text-sm text-gray-500">
+                      <MapPinIcon className="h-4 w-4 mr-1" />
+                      <span>{venue.location || '123 Sports Ave, City Center'}</span>
                     </div>
                   </div>
-                  <div className="ml-5 w-0 flex-1">
-                    <dl>
-                      <dt className="text-sm font-medium text-gray-500 truncate">
-                        Venue Name
-                      </dt>
-                      <dd className="text-lg font-medium text-gray-900">
-                        {venue.name}
-                      </dd>
-                    </dl>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-gray-50 px-5 py-3">
-                <div className="text-sm">
-                  {venue.location && (
-                    <p className="text-gray-600 mb-1">{venue.location}</p>
-                  )}
-                  {venue.city && venue.country && (
-                    <p className="text-gray-500 mb-1">{venue.city}, {venue.country}</p>
-                  )}
-                  {venue.capacity && (
-                    <p className="text-gray-500">Capacity: {venue.capacity.toLocaleString()}</p>
-                  )}
-                </div>
-                {isAdmin && (
-                  <div className="mt-3 flex space-x-2">
+                  <div className="flex space-x-1">
                     <button
                       onClick={() => handleEdit(venue)}
-                      className="text-primary-600 hover:text-primary-900"
+                      className="p-1 text-gray-400 hover:text-gray-600"
                     >
                       <PencilIcon className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => handleDelete(venue.venue_id || venue.id)}
-                      className="text-red-600 hover:text-red-900"
+                      className="p-1 text-gray-400 hover:text-red-600"
                     >
                       <TrashIcon className="h-4 w-4" />
                     </button>
                   </div>
-                )}
+                </div>
+                
+                <div className="mt-4">
+                  <div className="flex items-center text-sm text-gray-600">
+                    <UserGroupIcon className="h-4 w-4 mr-1" />
+                    <span>Capacity: {venue.capacity || '5,000'}</span>
+                  </div>
+                </div>
+                
+                <div className="mt-4">
+                  <div className="text-sm text-gray-600 mb-2">Facilities</div>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      <TruckIcon className="h-3 w-3 mr-1" />
+                      Parking
+                    </span>
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      <BuildingOfficeIcon className="h-3 w-3 mr-1" />
+                      Concessions
+                    </span>
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                      <UserIcon className="h-3 w-3 mr-1" />
+                      Changing Rooms
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="mt-4">
+                  <div className="text-sm text-gray-600">
+                    <span className="font-medium">Upcoming matches:</span> 3 scheduled
+                  </div>
+                </div>
+                
+                <div className="mt-6 flex space-x-3">
+                  <button className="flex-1 bg-white border border-gray-300 rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    View Schedule
+                  </button>
+                  <button className="flex-1 bg-blue-600 border border-transparent rounded-md px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Edit
+                  </button>
+                </div>
               </div>
             </div>
           ))}
