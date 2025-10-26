@@ -52,13 +52,26 @@ export const login = createAsyncThunk(
       
       // Provide more specific error messages
       if (error.response?.status === 500) {
-        return rejectWithValue('Backend server error. Please check if the server is running and database is connected.');
+        const errorMsg = error.response?.data?.message || 'Backend server error';
+        const errorDetails = error.response?.data?.error || {};
+        console.error('🔍 500 Error Analysis:', {
+          message: errorMsg,
+          error: errorDetails,
+          isEmpty: Object.keys(errorDetails).length === 0,
+          possibleCauses: [
+            'Database connection failed',
+            'Missing environment variables',
+            'Backend service crashed',
+            'Database server down'
+          ]
+        });
+        return rejectWithValue(`Server Error (500): ${errorMsg}. The deployed backend has server issues. Please check backend deployment or try local development.`);
       } else if (error.response?.status === 404) {
         return rejectWithValue('Login endpoint not found. Please check backend server configuration.');
       } else if (error.response?.status === 401) {
         return rejectWithValue('Invalid email or password.');
       } else if (error.code === 'NETWORK_ERROR' || error.message === 'Network Error') {
-        return rejectWithValue('Cannot connect to server. Please check if backend is running on port 3100.');
+        return rejectWithValue('Cannot connect to server. Please check if backend is running.');
       }
       
       return rejectWithValue(extractErrorMessage(error));

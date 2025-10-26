@@ -149,6 +149,14 @@ api.interceptors.response.use(
       console.error('Network error - check your internet connection and API server');
     } else if (error.response?.status >= 500) {
       console.error('Server error - the API server is experiencing issues');
+      console.error('500 Error details:', {
+        url: error.config?.url,
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.response?.data?.message,
+        fullResponse: error.response?.data,
+        headers: error.response?.headers
+      });
     }
     
     return Promise.reject(error);

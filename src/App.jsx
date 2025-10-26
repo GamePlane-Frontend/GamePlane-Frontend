@@ -3,6 +3,7 @@ import { Provider } from 'react-redux';
 import { store } from './store';
 import { useSelector } from 'react-redux';
 import Layout from './layout/Layout';
+import HomePage from './pages/HomePage';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import Dashboard from './pages/Dashboard';
@@ -30,7 +31,7 @@ const AdminRoute = ({ children }) => {
     return <Navigate to="/login" />;
   }
   if (user?.role !== 'ADMIN') {
-    return <Navigate to="/leagues" />;
+    return <Navigate to="/app/leagues" />;
   }
   return children;
 };
@@ -42,7 +43,7 @@ const CoachRoute = ({ children }) => {
     return <Navigate to="/login" />;
   }
   if (user?.role !== 'COACH') {
-    return <Navigate to="/leagues" />;
+    return <Navigate to="/app/leagues" />;
   }
   return children;
 };
@@ -54,9 +55,9 @@ const PublicRoute = ({ children }) => {
     return children;
   }
   // Redirect to dashboard for admins, coach page for coaches, leagues for others
-  return user?.role === 'ADMIN' ? <Navigate to="/dashboard" /> : 
-         user?.role === 'COACH' ? <Navigate to="/coach" /> : 
-         <Navigate to="/leagues" />;
+  return user?.role === 'ADMIN' ? <Navigate to="/app/dashboard" /> : 
+         user?.role === 'COACH' ? <Navigate to="/app/coach" /> : 
+         <Navigate to="/app/leagues" />;
 };
 
 function App() {
@@ -65,6 +66,16 @@ function App() {
       <Router>
         <div className="min-h-screen bg-gray-50">
           <Routes>
+            {/* Home Page - Only shown when not logged in */}
+            <Route
+              path="/"
+              element={
+                <PublicRoute>
+                  <HomePage />
+                </PublicRoute>
+              }
+            />
+
             {/* Public Routes */}
             <Route
               path="/login"
@@ -85,14 +96,14 @@ function App() {
 
             {/* Protected Routes */}
             <Route
-              path="/"
+              path="/app"
               element={
                 <ProtectedRoute>
                   <Layout />
                 </ProtectedRoute>
               }
             >
-            <Route index element={<Navigate to="/leagues" />} />
+            <Route index element={<Navigate to="/app/leagues" />} />
             <Route path="dashboard" element={
               <AdminRoute>
                 <Dashboard />
