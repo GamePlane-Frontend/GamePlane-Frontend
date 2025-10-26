@@ -200,7 +200,7 @@ const Leagues = () => {
                     onClick={() => handleDetails(league)}
                     className="flex-1 bg-white border border-gray-300 rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                   >
-                    Details
+                    View Details
                   </button>
 
                   {isAdmin && (
@@ -209,7 +209,7 @@ const Leagues = () => {
                         onClick={() => handleEdit(league)}
                         className="flex-1 bg-blue-600 rounded-md px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                       >
-                        Edit
+                        Manage
                       </button>
 
                       <button

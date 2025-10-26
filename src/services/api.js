@@ -60,6 +60,10 @@ api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     
+    // List of endpoints that don't require authentication
+    const publicEndpoints = ['/auth/login', '/auth/register'];
+    const isPublicEndpoint = publicEndpoints.some(endpoint => config.url?.includes(endpoint));
+    
     if (token) {
       // Debug token information
       debugToken(token);
@@ -81,7 +85,8 @@ api.interceptors.request.use(
         tokenLength: token.length,
         authHeader: config.headers.Authorization?.substring(0, 20) + '...'
       });
-    } else {
+    } else if (!isPublicEndpoint) {
+      // Only show warning for endpoints that require authentication
       console.warn('⚠️ No token found for request:', config.url);
     }
     return config;

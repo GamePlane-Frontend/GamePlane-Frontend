@@ -25,9 +25,21 @@ const Login = () => {
     e.preventDefault();
     try {
       await dispatch(login(formData)).unwrap();
-      navigate("/dashboard");
+      // Check user role for proper redirect
+      const user = JSON.parse(localStorage.getItem('user'));
+      if (user?.role === 'ADMIN') {
+        navigate("/dashboard");
+      } else if (user?.role === 'COACH') {
+        navigate("/coach");
+      } else {
+        navigate("/leagues");
+      }
     } catch (err) {
       console.error("Login failed:", err);
+      // Show more specific error message
+      if (err.message?.includes('500') || err.message?.includes('Internal Server Error')) {
+        alert('Backend server error. Please check if the backend server is running properly.');
+      }
     }
   };
 

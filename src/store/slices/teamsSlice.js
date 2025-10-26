@@ -1,11 +1,18 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../../services/api';
 
-function mapTeamPayload(data) {
+function mapTeamCreatePayload(data) {
   return {
     name: data.name,
     league_id: data.leagueId,
-    // description omitted (not supported by backend Prisma model)
+    // Coach assignment will be handled separately by updating the coach's team_id
+  };
+}
+
+function mapTeamUpdatePayload(data) {
+  return {
+    name: data.name,
+    // Coach assignment will be handled separately by updating the coach's team_id
   };
 }
 
@@ -50,7 +57,7 @@ export const createTeam = createAsyncThunk(
   'teams/createTeam',
   async (teamData, { rejectWithValue }) => {
     try {
-      const payload = mapTeamPayload(teamData);
+      const payload = mapTeamCreatePayload(teamData);
       const response = await api.post('/teams', payload);
       return response.data;
     } catch (error) {
@@ -63,11 +70,35 @@ export const updateTeam = createAsyncThunk(
   'teams/updateTeam',
   async ({ id, teamData }, { rejectWithValue }) => {
     try {
-      const payload = mapTeamPayload(teamData);
+      const payload = mapTeamUpdatePayload(teamData);
       const response = await api.put(`/teams/${id}`, payload);
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.error || 'Failed to update team');
+    }
+  }
+);
+
+export const assignCoachToTeam = createAsyncThunk(
+  'teams/assignCoachToTeam',
+  async ({ teamId, coachId }, { rejectWithValue }) => {
+    try {
+      // Try to update coach's team_id through the teams endpoint
+      // or create a coach record if it doesn't exist
+      const response = await api.post(`/teams/${teamId}/coaches`, {
+        coach_id: coachId
+      });
+      return response.data;
+    } catch (error) {
+      // If that fails, try updating the user directly
+      try {
+        const response = await api.put(`/users/${coachId}`, {
+          team_id: teamId
+        });
+        return response.data;
+      } catch (userError) {
+        return rejectWithValue(error.response?.data?.error || 'Failed to assign coach to team');
+      }
     }
   }
 );
