@@ -172,6 +172,11 @@ const Players = () => {
   };
 
   const isAdmin = user?.role === 'ADMIN';
+  const isCoach = user?.role === 'COACH';
+  
+  // For coaches, filter players to only show players from teams they coach
+  // For now, we'll show all players but restrict edit/delete to admin only
+  // TODO: Implement proper coach-team relationship filtering
 
   return (
     <div className="space-y-6">
@@ -295,12 +300,31 @@ const Players = () => {
                   </div>
                   
                   <div className="mt-6 flex space-x-3">
-                    <button className="flex-1 bg-white border border-gray-300 rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <button 
+                      onClick={() => {/* TODO: Add view stats functionality */}}
+                      className="flex-1 bg-white border border-gray-300 rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
                       View Stats
                     </button>
-                    <button className="flex-1 bg-blue-600 border border-transparent rounded-md px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                      Edit
-                    </button>
+                    {/* Show edit button for coaches and admins, but only for players from their teams */}
+                    {(isAdmin || isCoach) && (
+                      <button 
+                        onClick={() => handleEdit(player)}
+                        className="flex-1 bg-blue-600 border border-transparent rounded-md px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      >
+                        {isCoach ? 'Edit Player' : 'Manage'}
+                      </button>
+                    )}
+                    
+                    {/* Only admins can delete players */}
+                    {isAdmin && (
+                      <button 
+                        onClick={() => handleDelete(player)}
+                        className="flex-1 bg-red-600 border border-transparent rounded-md px-3 py-2 text-sm font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        Delete
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

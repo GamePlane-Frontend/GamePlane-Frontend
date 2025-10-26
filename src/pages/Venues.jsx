@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchVenues, createVenue, updateVenue, deleteVenue } from '../store/slices/venuesSlice';
+import { fetchVenues, createVenue, updateVenue, deleteVenue, clearError } from '../store/slices/venuesSlice';
 import { PlusIcon, PencilIcon, TrashIcon, MapPinIcon, UserGroupIcon, CalendarIcon, TruckIcon, BuildingOfficeIcon, UserIcon } from '@heroicons/react/24/outline';
 
 const Venues = () => {
@@ -12,10 +12,7 @@ const Venues = () => {
   const [editingVenue, setEditingVenue] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
-    location: '', // Changed from 'address' to 'location' to match Prisma
-    capacity: '',
-    city: '',
-    country: '',
+    location: '', // Only supported fields: name and location
   });
 
   useEffect(() => {
@@ -33,7 +30,10 @@ const Venues = () => {
     e.preventDefault();
     try {
       if (editingVenue) {
-        await dispatch(updateVenue({ id: editingVenue.id, venueData: formData })).unwrap();
+        const venueId = editingVenue.venue_id || editingVenue.id;
+        console.log('Updating venue with ID:', venueId);
+        console.log('Form data:', formData);
+        await dispatch(updateVenue({ id: venueId, venueData: formData })).unwrap();
       } else {
         await dispatch(createVenue(formData)).unwrap();
       }
@@ -42,9 +42,6 @@ const Venues = () => {
       setFormData({
         name: '',
         location: '',
-        capacity: '',
-        city: '',
-        country: '',
       });
     } catch (error) {
       console.error('Failed to save venue:', error);
@@ -52,13 +49,12 @@ const Venues = () => {
   };
 
   const handleEdit = (venue) => {
+    console.log('Editing venue:', venue);
+    console.log('Venue ID:', venue.venue_id || venue.id);
     setEditingVenue(venue);
     setFormData({
       name: venue.name || '',
-      address: venue.location || '', // Prisma uses 'location' not 'address'
-      capacity: venue.capacity || '',
-      city: venue.city || '',
-      country: venue.country || '',
+      location: venue.location || '', // Use 'location' to match backend
     });
     setShowModal(true);
   };
@@ -71,12 +67,17 @@ const Venues = () => {
       return;
     }
 
+    console.log('Deleting venue with ID:', id);
+    
     if (window.confirm('Are you sure you want to delete this venue?')) {
       try {
         await dispatch(deleteVenue(id)).unwrap();
+        console.log('Venue deleted successfully');
+        alert('Venue deleted successfully!');
       } catch (error) {
         console.error('Failed to delete venue:', error);
-        alert('Error: Failed to delete venue. Please try again.');
+        // The error message is now handled by the slice and will be displayed via the error state
+        alert(`Error: ${error.message || 'Failed to delete venue. Please try again.'}`);
       }
     }
   };
@@ -87,13 +88,11 @@ const Venues = () => {
     setFormData({
       name: '',
       location: '',
-      capacity: '',
-      city: '',
-      country: '',
     });
   };
 
   const isAdmin = user?.role === 'ADMIN';
+  const isCoach = user?.role === 'COACH';
 
   return (
     <div className="space-y-6">
@@ -139,7 +138,29 @@ const Venues = () => {
       {/* Error Message */}
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
-          {error}
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">
+                Error
+              </h3>
+              <div className="mt-2 text-sm text-red-700">
+                <p>{error}</p>
+              </div>
+              <div className="mt-3">
+                <button
+                  onClick={() => dispatch(clearError())}
+                  className="text-sm font-medium text-red-800 hover:text-red-900"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -179,12 +200,6 @@ const Venues = () => {
                   </div>
                 </div>
                 
-                <div className="mt-4">
-                  <div className="flex items-center text-sm text-gray-600">
-                    <UserGroupIcon className="h-4 w-4 mr-1" />
-                    <span>Capacity: {venue.capacity || '5,000'}</span>
-                  </div>
-                </div>
                 
                 <div className="mt-4">
                   <div className="text-sm text-gray-600 mb-2">Facilities</div>
@@ -206,17 +221,57 @@ const Venues = () => {
                 
                 <div className="mt-4">
                   <div className="text-sm text-gray-600">
-                    <span className="font-medium">Upcoming matches:</span> 3 scheduled
+                    <span className="font-medium">Upcoming matches:</span> 
+                    <span className={`ml-1 ${venue.fixtures && venue.fixtures.length > 0 ? 'text-orange-600 font-semibold' : 'text-green-600'}`}>
+                      {venue.fixtures && venue.fixtures.length > 0 ? `${venue.fixtures.length} scheduled` : 'No fixtures'}
+                    </span>
                   </div>
+                  {venue.fixtures && venue.fixtures.length > 0 && (
+                    <div className="mt-1 text-xs text-orange-600">
+                      ⚠️ Cannot delete - venue is in use
+                    </div>
+                  )}
                 </div>
                 
                 <div className="mt-6 flex space-x-3">
-                  <button className="flex-1 bg-white border border-gray-300 rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                  <button 
+                    onClick={() => {/* TODO: Add view schedule functionality */}}
+                    className="flex-1 bg-white border border-gray-300 rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
                     View Schedule
                   </button>
-                  <button className="flex-1 bg-blue-600 border border-transparent rounded-md px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    Edit
-                  </button>
+                  {/* Coaches can only view venue schedule, admins can manage and delete */}
+                  {isCoach && (
+                    <button 
+                      onClick={() => {/* TODO: Add view schedule functionality */}}
+                      className="flex-1 bg-blue-600 border border-transparent rounded-md px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
+                      View Schedule
+                    </button>
+                  )}
+                  
+                  {isAdmin && (
+                    <>
+                      <button 
+                        onClick={() => handleEdit(venue)}
+                        className="flex-1 bg-blue-600 border border-transparent rounded-md px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      >
+                        Manage
+                      </button>
+                      <button 
+                        onClick={() => handleDelete(venue.venue_id || venue.id)}
+                        disabled={venue.fixtures && venue.fixtures.length > 0}
+                        className={`flex-1 rounded-md px-3 py-2 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 ${
+                          venue.fixtures && venue.fixtures.length > 0 
+                            ? 'bg-gray-400 cursor-not-allowed' 
+                            : 'bg-red-600 hover:bg-red-700'
+                        }`}
+                        title={venue.fixtures && venue.fixtures.length > 0 ? 'Cannot delete venue with active fixtures' : 'Delete venue'}
+                      >
+                        Delete
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -289,52 +344,7 @@ const Venues = () => {
                   />
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="city" className="block text-sm font-medium text-gray-700">
-                      City
-                    </label>
-                    <input
-                      type="text"
-                      name="city"
-                      id="city"
-                      value={formData.city}
-                      onChange={handleInputChange}
-                      className="input-field mt-1"
-                      placeholder="City"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="country" className="block text-sm font-medium text-gray-700">
-                      Country
-                    </label>
-                    <input
-                      type="text"
-                      name="country"
-                      id="country"
-                      value={formData.country}
-                      onChange={handleInputChange}
-                      className="input-field mt-1"
-                      placeholder="Country"
-                    />
-                  </div>
-                </div>
                 
-                <div>
-                  <label htmlFor="capacity" className="block text-sm font-medium text-gray-700">
-                    Capacity
-                  </label>
-                  <input
-                    type="number"
-                    name="capacity"
-                    id="capacity"
-                    min="0"
-                    value={formData.capacity}
-                    onChange={handleInputChange}
-                    className="input-field mt-1"
-                    placeholder="Venue capacity"
-                  />
-                </div>
                 
                 <div className="flex justify-end space-x-3 pt-4">
                   <button

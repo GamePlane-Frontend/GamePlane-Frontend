@@ -57,7 +57,16 @@ export const deleteVenue = createAsyncThunk(
       const response = await api.delete(`/venues/${id}`);
       return { id, ...response.data };
     } catch (error) {
-      return rejectWithValue(error.response?.data?.error || 'Failed to delete venue');
+      console.error('Delete venue error:', error);
+      
+      // Handle specific error types
+      if (error.response?.status === 404) {
+        return rejectWithValue('Venue not found. It may have already been deleted.');
+      } else if (error.response?.data?.error && error.response.data.error.includes('Foreign key constraint')) {
+        return rejectWithValue('Cannot delete this venue because it is being used by existing fixtures/matches. Please remove or reassign all fixtures using this venue first.');
+      } else {
+        return rejectWithValue(error.response?.data?.error || 'Failed to delete venue');
+      }
     }
   }
 );
@@ -131,12 +140,15 @@ const venuesSlice = createSlice({
       })
       .addCase(updateVenue.fulfilled, (state, action) => {
         state.loading = false;
-        const index = state.venues.findIndex(venue => venue.id === action.payload.data.id);
+        const updatedVenue = action.payload.data;
+        const index = state.venues.findIndex(venue => 
+          (venue.id || venue.venue_id) === (updatedVenue.id || updatedVenue.venue_id)
+        );
         if (index !== -1) {
-          state.venues[index] = action.payload.data;
+          state.venues[index] = updatedVenue;
         }
-        if (state.currentVenue?.id === action.payload.data.id) {
-          state.currentVenue = action.payload.data;
+        if ((state.currentVenue?.id || state.currentVenue?.venue_id) === (updatedVenue.id || updatedVenue.venue_id)) {
+          state.currentVenue = updatedVenue;
         }
         state.error = null;
       })
@@ -151,7 +163,10 @@ const venuesSlice = createSlice({
       })
       .addCase(deleteVenue.fulfilled, (state, action) => {
         state.loading = false;
-        state.venues = state.venues.filter(venue => venue.id !== action.payload.id);
+        const deletedId = action.payload.id;
+        state.venues = state.venues.filter(venue => 
+          (venue.id || venue.venue_id) !== deletedId
+        );
         state.error = null;
       })
       .addCase(deleteVenue.rejected, (state, action) => {

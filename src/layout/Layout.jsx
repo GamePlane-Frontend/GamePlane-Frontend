@@ -24,7 +24,6 @@ const Layout = () => {
   const { user } = useSelector((state) => state.auth);
 
   const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
     { name: 'Leagues', href: '/leagues', icon: TrophyIcon },
     { name: 'Teams', href: '/teams', icon: UserGroupIcon },
     { name: 'Players', href: '/players', icon: UsersIcon },
@@ -34,9 +33,15 @@ const Layout = () => {
     { name: 'Venues', href: '/venues', icon: MapPinIcon },
   ];
 
-  // Add Users menu item for ADMIN role
+  // Add Dashboard and Users menu items for ADMIN role only
   if (user?.role === 'ADMIN') {
+    navigation.unshift({ name: 'Dashboard', href: '/dashboard', icon: HomeIcon });
     navigation.push({ name: 'Users', href: '/users', icon: UserIcon });
+  }
+  
+  // Add Coach menu items for COACH role only
+  if (user?.role === 'COACH') {
+    navigation.unshift({ name: 'Coach Dashboard', href: '/coach', icon: HomeIcon });
   }
 
   const handleLogout = () => {

@@ -27,7 +27,15 @@ export const login = createAsyncThunk(
   'auth/login',
   async (credentials, { rejectWithValue }) => {
     try {
+      console.log('🔐 Attempting login with credentials:', { 
+        email: credentials.email, 
+        role: credentials.role,
+        hasPassword: !!credentials.password 
+      });
+      
       const response = await api.post('/auth/login', credentials);
+      console.log('✅ Login successful, response:', response.data);
+      
       const { user, token } = response.data.data;
       
       localStorage.setItem('token', token);
@@ -35,6 +43,24 @@ export const login = createAsyncThunk(
       
       return { user, token };
     } catch (error) {
+      console.error('❌ Login error details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message
+      });
+      
+      // Provide more specific error messages
+      if (error.response?.status === 500) {
+        return rejectWithValue('Backend server error. Please check if the server is running and database is connected.');
+      } else if (error.response?.status === 404) {
+        return rejectWithValue('Login endpoint not found. Please check backend server configuration.');
+      } else if (error.response?.status === 401) {
+        return rejectWithValue('Invalid email or password.');
+      } else if (error.code === 'NETWORK_ERROR' || error.message === 'Network Error') {
+        return rejectWithValue('Cannot connect to server. Please check if backend is running on port 3100.');
+      }
+      
       return rejectWithValue(extractErrorMessage(error));
     }
   }

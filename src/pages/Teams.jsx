@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchTeams, createTeam, updateTeam, deleteTeam } from '../store/slices/teamsSlice';
+import { fetchTeams, createTeam, updateTeam, deleteTeam, assignCoachToTeam } from '../store/slices/teamsSlice';
 import { fetchLeagues } from '../store/slices/leaguesSlice';
+import { fetchUsers } from '../store/slices/usersSlice';
 import { PlusIcon, PencilIcon, TrashIcon, MapPinIcon, UserGroupIcon, ChartBarIcon } from '@heroicons/react/24/outline';
 
 const Teams = () => {
   const dispatch = useDispatch();
   const { teams, loading, error } = useSelector((state) => state.teams);
   const { leagues } = useSelector((state) => state.leagues);
+  const { users } = useSelector((state) => state.users);
   const { user } = useSelector((state) => state.auth);
   
   const [showModal, setShowModal] = useState(false);
@@ -16,11 +18,13 @@ const Teams = () => {
     name: '',
     leagueId: '',
     description: '',
+    coachId: '', // Add coach selection
   });
 
   useEffect(() => {
     dispatch(fetchTeams());
     dispatch(fetchLeagues());
+    dispatch(fetchUsers()); // Fetch users to get coaches
   }, [dispatch]);
 
   const handleInputChange = (e) => {
@@ -38,12 +42,14 @@ const Teams = () => {
       } else {
         await dispatch(createTeam(formData)).unwrap();
       }
+      
       setShowModal(false);
       setEditingTeam(null);
       setFormData({
         name: '',
         leagueId: '',
         description: '',
+        coachId: '', // Reset coach selection
       });
     } catch (error) {
       console.error('Failed to save team:', error);
@@ -82,6 +88,26 @@ const Teams = () => {
   };
 
   const isAdmin = user?.role === 'ADMIN';
+  const isCoach = user?.role === 'COACH';
+  
+  // Filter users to get only coaches
+  const coaches = users.filter(user => user.role === 'COACH');
+  
+  // Filter teams based on user role
+  const filteredTeams = isAdmin ? teams : 
+    isCoach ? teams.filter(team => {
+      // Check direct coach_id match
+      if (team.coach_id === user?.id) return true;
+      
+      // Check nested coach object
+      if (team.coach?.id === user?.id) return true;
+      
+      // Check if coach_id is a string and user.id is a number or vice versa
+      if (String(team.coach_id) === String(user?.id)) return true;
+      if (String(team.coach?.id) === String(user?.id)) return true;
+      
+      return false;
+    }) : teams;
 
   return (
     <div className="space-y-6">
@@ -89,8 +115,14 @@ const Teams = () => {
       <div className="md:flex md:items-center md:justify-between">
         <div className="flex-1 min-w-0">
           <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-            Teams
+            {isCoach ? 'My Team' : 'Teams'}
           </h2>
+          <p className="mt-1 text-sm text-gray-500">
+            {isCoach 
+              ? 'Manage your assigned team and players.'
+              : 'Manage teams, assign coaches, and organize leagues.'
+            }
+          </p>
         </div>
         {isAdmin && (
           <div className="mt-4 flex md:mt-0 md:ml-4">
@@ -138,7 +170,7 @@ const Teams = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {teams.map((team, idx) => (
+          {filteredTeams.map((team, idx) => (
             <div key={team.id || team.team_id || `team-${idx}`} className="bg-white overflow-hidden shadow rounded-lg border border-gray-200">
               <div className="p-6">
                 <div className="flex items-start justify-between">
@@ -190,12 +222,38 @@ const Teams = () => {
                 </div>
                 
                 <div className="mt-6 flex space-x-3">
-                  <button className="flex-1 bg-white border border-gray-300 rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                  <button 
+                    onClick={() => {/* TODO: Add view details functionality */}}
+                    className="flex-1 bg-white border border-gray-300 rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
                     View Details
                   </button>
-                  <button className="flex-1 bg-blue-600 border border-transparent rounded-md px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    Manage
-                  </button>
+                  {/* Coaches can only view team details, admins can manage and delete */}
+                  {isCoach && (
+                    <button 
+                      onClick={() => {/* TODO: Add view team details functionality */}}
+                      className="flex-1 bg-blue-600 border border-transparent rounded-md px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
+                      View Team
+                    </button>
+                  )}
+                  
+                  {isAdmin && (
+                    <>
+                      <button 
+                        onClick={() => handleEdit(team)}
+                        className="flex-1 bg-blue-600 border border-transparent rounded-md px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      >
+                        Manage
+                      </button>
+                      <button 
+                        onClick={() => handleDelete(team.id || team.team_id)}
+                        className="flex-1 bg-red-600 border border-transparent rounded-md px-3 py-2 text-sm font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        Delete
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -204,14 +262,19 @@ const Teams = () => {
       )}
 
       {/* Empty State */}
-      {!loading && teams.length === 0 && (
+      {!loading && filteredTeams.length === 0 && (
         <div className="text-center py-12">
           <div className="mx-auto h-12 w-12 text-gray-400">
             <PlusIcon className="h-12 w-12" />
           </div>
-          <h3 className="mt-2 text-sm font-medium text-gray-900">No teams</h3>
+          <h3 className="mt-2 text-sm font-medium text-gray-900">
+            {isCoach ? 'No team assigned' : 'No teams'}
+          </h3>
           <p className="mt-1 text-sm text-gray-500">
-            Get started by creating a new team.
+            {isCoach 
+              ? 'You haven\'t been assigned to a team yet. Please contact an administrator.'
+              : 'Get started by creating a new team.'
+            }
           </p>
           {isAdmin && (
             <div className="mt-6">

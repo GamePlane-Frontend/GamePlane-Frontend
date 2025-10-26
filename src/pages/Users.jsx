@@ -246,6 +246,26 @@ const Users = () => {
     }
   };
 
+  const handleMakeCoach = async (user) => {
+    if (window.confirm(`Are you sure you want to make ${user.firstName} ${user.lastName} a coach?`)) {
+      try {
+        await dispatch(updateUser({ 
+          id: user.id, 
+          userData: { 
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            role: 'COACH'
+          } 
+        })).unwrap();
+        alert(`${user.firstName} ${user.lastName} is now a coach!`);
+      } catch (error) {
+        console.error('Failed to make user a coach:', error);
+        alert('Failed to change user role. Please try again.');
+      }
+    }
+  };
+
   const handleCloseModal = () => {
     setShowModal(false);
     setEditingUser(null);
@@ -427,11 +447,31 @@ const Users = () => {
                 </div>
                 
                 <div className="mt-6 flex space-x-3">
-                  <button className="flex-1 bg-white border border-gray-300 rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                  <button 
+                    onClick={() => {/* TODO: Add view profile functionality */}}
+                    className="flex-1 bg-white border border-gray-300 rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
                     View Profile
                   </button>
-                  <button className="flex-1 bg-blue-600 border border-transparent rounded-md px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    Edit
+                  <button 
+                    onClick={() => handleEdit(user)}
+                    className="flex-1 bg-blue-600 border border-transparent rounded-md px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    Manage
+                  </button>
+                  {user.role !== 'COACH' && (
+                    <button 
+                      onClick={() => handleMakeCoach(user)}
+                      className="flex-1 bg-green-600 border border-transparent rounded-md px-3 py-2 text-sm font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                    >
+                      Make Coach
+                    </button>
+                  )}
+                  <button 
+                    onClick={() => handleDelete(user.id)}
+                    className="flex-1 bg-red-600 border border-transparent rounded-md px-3 py-2 text-sm font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                  >
+                    Delete
                   </button>
                 </div>
               </div>

@@ -29,6 +29,9 @@ const Dashboard = () => {
   const { fixtures, loading: fixturesLoading } = useSelector((state) => state.fixtures);
   const { results, loading: resultsLoading } = useSelector((state) => state.results);
 
+  const isAdmin = user?.role === 'ADMIN';
+  const isCoach = user?.role === 'COACH';
+
   useEffect(() => {
     dispatch(fetchLeagues());
     dispatch(fetchAllTeams());
@@ -71,7 +74,7 @@ const Dashboard = () => {
     },
   ];
 
-  const quickActions = [
+  const quickActions = isAdmin ? [
     {
       name: 'Create League',
       description: 'Add a new league to the system',
@@ -100,7 +103,36 @@ const Dashboard = () => {
       icon: PlusIcon,
       color: 'bg-purple-500',
     },
-  ];
+  ] : isCoach ? [
+    {
+      name: 'View Players',
+      description: 'Manage your team players',
+      href: '/players',
+      icon: UserGroupIcon,
+      color: 'bg-blue-500',
+    },
+    {
+      name: 'View Teams',
+      description: 'See all teams in the league',
+      href: '/teams',
+      icon: UserGroupIcon,
+      color: 'bg-green-500',
+    },
+    {
+      name: 'View Fixtures',
+      description: 'Check upcoming matches',
+      href: '/fixtures',
+      icon: CalendarIcon,
+      color: 'bg-yellow-500',
+    },
+    {
+      name: 'View Results',
+      description: 'See match results and scores',
+      href: '/results',
+      icon: ChartBarIcon,
+      color: 'bg-purple-500',
+    },
+  ] : [];
 
   const recentFixtures = fixtures.slice(0, 5);
   const recentResults = results.slice(0, 5);
@@ -111,10 +143,15 @@ const Dashboard = () => {
       <div className="md:flex md:items-center md:justify-between">
         <div className="flex-1 min-w-0">
           <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-            Admin Dashboard
+            {isAdmin ? 'Admin Dashboard' : isCoach ? 'Coach Dashboard' : 'Dashboard'}
           </h2>
           <p className="mt-1 text-sm text-gray-500">
-            Welcome back! Here's what's happening in your leagues.
+            {isAdmin 
+              ? "Welcome back! Here's what's happening in your leagues."
+              : isCoach 
+              ? `Welcome back, ${user?.firstName || 'Coach'}! Here's your team overview.`
+              : "Welcome back! Here's what's happening in your leagues."
+            }
           </p>
         </div>
       </div>
@@ -151,6 +188,43 @@ const Dashboard = () => {
           );
         })}
       </div>
+
+      {/* Quick Actions for Coaches */}
+      {isCoach && (
+        <div className="bg-white shadow rounded-lg">
+          <div className="px-4 py-5 sm:p-6">
+            <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+              Quick Actions
+            </h3>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {quickActions.map((action) => {
+                const Icon = action.icon;
+                return (
+                  <Link
+                    key={action.name}
+                    to={action.href}
+                    className="relative bg-white pt-5 px-4 pb-12 sm:pt-6 sm:px-6 shadow rounded-lg overflow-hidden hover:shadow-md transition-shadow border border-gray-200"
+                  >
+                    <dt>
+                      <div className={`absolute ${action.color} rounded-md p-3`}>
+                        <Icon className="h-6 w-6 text-white" />
+                      </div>
+                      <p className="ml-16 text-sm font-medium text-gray-500 truncate">
+                        {action.name}
+                      </p>
+                    </dt>
+                    <dd className="ml-16 pb-6 flex items-baseline sm:pb-7">
+                      <p className="text-sm text-gray-600">
+                        {action.description}
+                      </p>
+                    </dd>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Recent Activity and League Standings */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
