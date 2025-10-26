@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../store/slices/authSlice';
 import {
@@ -24,29 +24,29 @@ const Layout = () => {
   const { user } = useSelector((state) => state.auth);
 
   const navigation = [
-    { name: 'Leagues', href: '/leagues', icon: TrophyIcon },
-    { name: 'Teams', href: '/teams', icon: UserGroupIcon },
-    { name: 'Players', href: '/players', icon: UsersIcon },
-    { name: 'Fixtures', href: '/fixtures', icon: CalendarIcon },
-    { name: 'Results', href: '/results', icon: ChartBarIcon },
-    { name: 'Referees', href: '/referees', icon: UserIcon },
-    { name: 'Venues', href: '/venues', icon: MapPinIcon },
+    { name: 'Leagues', href: '/app/leagues', icon: TrophyIcon },
+    { name: 'Teams', href: '/app/teams', icon: UserGroupIcon },
+    { name: 'Players', href: '/app/players', icon: UsersIcon },
+    { name: 'Fixtures', href: '/app/fixtures', icon: CalendarIcon },
+    { name: 'Results', href: '/app/results', icon: ChartBarIcon },
+    { name: 'Referees', href: '/app/referees', icon: UserIcon },
+    { name: 'Venues', href: '/app/venues', icon: MapPinIcon },
   ];
 
   // Add Dashboard and Users menu items for ADMIN role only
   if (user?.role === 'ADMIN') {
-    navigation.unshift({ name: 'Dashboard', href: '/dashboard', icon: HomeIcon });
-    navigation.push({ name: 'Users', href: '/users', icon: UserIcon });
+    navigation.unshift({ name: 'Dashboard', href: '/app/dashboard', icon: HomeIcon });
+    navigation.push({ name: 'Users', href: '/app/users', icon: UserIcon });
   }
   
   // Add Coach menu items for COACH role only
   if (user?.role === 'COACH') {
-    navigation.unshift({ name: 'Coach Dashboard', href: '/coach', icon: HomeIcon });
+    navigation.unshift({ name: 'Coach Dashboard', href: '/app/coach', icon: HomeIcon });
   }
 
   const handleLogout = () => {
     dispatch(logout());
-    navigate('/login');
+    navigate('/');
   };
 
   const isCurrentPath = (path) => {
@@ -79,9 +79,9 @@ const Layout = () => {
               {navigation.map((item) => {
                 const Icon = item.icon;
                 return (
-                  <a
+                  <Link
                     key={item.name}
-                    href={item.href}
+                    to={item.href}
                     className={`${
                       isCurrentPath(item.href)
                         ? 'bg-primary-100 text-primary-900'
@@ -90,7 +90,7 @@ const Layout = () => {
                   >
                     <Icon className="mr-4 h-6 w-6" />
                     {item.name}
-                  </a>
+                  </Link>
                 );
               })}
             </nav>
@@ -130,9 +130,9 @@ const Layout = () => {
                 {navigation.map((item) => {
                   const Icon = item.icon;
                   return (
-                    <a
+                    <Link
                       key={item.name}
-                      href={item.href}
+                      to={item.href}
                       className={`${
                         isCurrentPath(item.href)
                           ? 'bg-primary-100 text-primary-900'
@@ -141,7 +141,7 @@ const Layout = () => {
                     >
                       <Icon className="mr-3 h-5 w-5" />
                       {item.name}
-                    </a>
+                    </Link>
                   );
                 })}
               </nav>

@@ -14,8 +14,7 @@ const Register = () => {
     lastName: '',
     email: '',
     password: '',
-    confirmPassword: '',
-    role: 'COACH'
+    confirmPassword: ''
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -38,8 +37,12 @@ const Register = () => {
     
     try {
       const { confirmPassword, ...registerData } = formData;
-      await dispatch(register(registerData)).unwrap();
-      navigate('/dashboard');
+      // Set default role as COACH since only admins should register users
+      const dataWithRole = { ...registerData, role: 'COACH' };
+      await dispatch(register(dataWithRole)).unwrap();
+      // Show message and redirect to login instead of dashboard
+      alert("Registration successful! You don't have a role assigned yet. Please contact an administrator to get your role assigned.");
+      navigate('/login');
     } catch (error) {
       console.error('Registration failed:', error);
     }
@@ -148,23 +151,6 @@ const Register = () => {
                     placeholder="Enter your email"
                   />
                 </div>
-              </div>
-
-              {/* Role Field */}
-              <div>
-                <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">
-                  Role
-                </label>
-                <select
-                  id="role"
-                  name="role"
-                  value={formData.role}
-                  onChange={handleChange}
-                  className="block w-full px-3 py-3 border border-gray-300 rounded-lg leading-5 bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
-                >
-                  <option value="COACH">Coach</option>
-                  <option value="ADMIN">Admin</option>
-                </select>
               </div>
 
               {/* Password Field */}

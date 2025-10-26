@@ -28,11 +28,11 @@ const Login = () => {
       // Check user role for proper redirect
       const user = JSON.parse(localStorage.getItem('user'));
       if (user?.role === 'ADMIN') {
-        navigate("/dashboard");
+        navigate("/app/dashboard");
       } else if (user?.role === 'COACH') {
-        navigate("/coach");
+        navigate("/app/coach");
       } else {
-        navigate("/leagues");
+        navigate("/app/leagues");
       }
     } catch (err) {
       console.error("Login failed:", err);
