@@ -36,73 +36,110 @@ const Coach = () => {
     dispatch(fetchResults());
   }, [dispatch]);
 
-  // Filter data for coach's team (when team relationship is implemented)
-  // For now, show all data but with coach-specific context
-  const upcomingFixtures = fixtures.filter(f => f.status === 'Scheduled').slice(0, 5);
-  const recentResults = results.slice(0, 5);
-  const myPlayers = players; // TODO: Filter by coach's team when relationship is established
+  // Get coach's assigned team
+  const coachTeam = teams.find(team => {
+    // Check direct coach_id match
+    if (team.coach_id === user?.id) return true;
+    
+    // Check nested coach object
+    if (team.coach?.id === user?.id) return true;
+    
+    // Check if coach_id is a string and user.id is a number or vice versa
+    if (String(team.coach_id) === String(user?.id)) return true;
+    if (String(team.coach?.id) === String(user?.id)) return true;
+    
+    return false;
+  });
+
+  // Filter data for coach's team
+  const myPlayers = players.filter(player => {
+    const playerTeamId = player.team_id || player.teamId || player.team?.id;
+    const coachTeamId = coachTeam?.id || coachTeam?.team_id;
+    return String(playerTeamId) === String(coachTeamId);
+  });
+
+  // Filter fixtures for coach's team (both home and away matches)
+  const teamFixtures = fixtures.filter(fixture => {
+    const homeTeamId = fixture.home_team_id || fixture.homeTeamId || fixture.home_team?.id;
+    const awayTeamId = fixture.away_team_id || fixture.awayTeamId || fixture.away_team?.id;
+    const coachTeamId = coachTeam?.id || coachTeam?.team_id;
+    
+    return String(homeTeamId) === String(coachTeamId) || String(awayTeamId) === String(coachTeamId);
+  });
+
+  const upcomingFixtures = teamFixtures.filter(f => f.status === 'Scheduled').slice(0, 5);
+  const recentResults = results.filter(result => {
+    const fixture = fixtures.find(f => f.id === result.fixture_id || f.fixture_id === result.fixture_id);
+    if (!fixture) return false;
+    
+    const homeTeamId = fixture.home_team_id || fixture.homeTeamId || fixture.home_team?.id;
+    const awayTeamId = fixture.away_team_id || fixture.awayTeamId || fixture.away_team?.id;
+    const coachTeamId = coachTeam?.id || coachTeam?.team_id;
+    
+    return String(homeTeamId) === String(coachTeamId) || String(awayTeamId) === String(coachTeamId);
+  }).slice(0, 5);
 
   const coachStats = [
     {
       name: 'My Players',
       value: myPlayers.length,
-      change: '+2',
+      change: coachTeam ? `${myPlayers.length} players` : 'No team assigned',
       icon: UsersIcon,
       color: 'bg-blue-500',
-      href: '/players',
+      href: '/app/my-team',
     },
     {
       name: 'Upcoming Matches',
       value: upcomingFixtures.length,
-      change: '+1',
+      change: coachTeam ? `${upcomingFixtures.length} scheduled` : 'No team assigned',
       icon: CalendarIcon,
       color: 'bg-green-500',
-      href: '/fixtures',
+      href: '/app/fixtures',
     },
     {
       name: 'Team Results',
       value: recentResults.length,
-      change: '+3',
+      change: coachTeam ? `${recentResults.length} recent` : 'No team assigned',
       icon: ChartBarIcon,
       color: 'bg-orange-500',
-      href: '/results',
+      href: '/app/results',
     },
     {
-      name: 'Active Leagues',
-      value: leagues.length,
-      change: '+1',
+      name: 'My Team',
+      value: coachTeam ? coachTeam.name : 'Not Assigned',
+      change: coachTeam ? 'Active' : 'Contact Admin',
       icon: TrophyIcon,
       color: 'bg-purple-500',
-      href: '/leagues',
+      href: '/app/my-team',
     },
   ];
 
   const quickActions = [
     {
-      name: 'Manage Players',
-      description: 'View and edit your team players',
-      href: '/players',
-      icon: UsersIcon,
+      name: 'My Team',
+      description: 'View your team details and players',
+      href: '/app/my-team',
+      icon: UserGroupIcon,
       color: 'bg-blue-500',
     },
     {
-      name: 'View Teams',
-      description: 'See all teams in the league',
-      href: '/teams',
-      icon: UserGroupIcon,
+      name: 'Manage Players',
+      description: 'View and edit your team players',
+      href: '/app/players',
+      icon: UsersIcon,
       color: 'bg-green-500',
     },
     {
       name: 'Check Fixtures',
       description: 'View upcoming matches',
-      href: '/fixtures',
+      href: '/app/fixtures',
       icon: CalendarIcon,
       color: 'bg-yellow-500',
     },
     {
       name: 'View Results',
       description: 'See match results and scores',
-      href: '/results',
+      href: '/app/results',
       icon: ChartBarIcon,
       color: 'bg-purple-500',
     },
@@ -127,6 +164,46 @@ const Coach = () => {
           </div>
         </div>
       </div>
+
+      {/* Team Information */}
+      {coachTeam ? (
+        <div className="bg-gradient-to-r from-blue-600 to-green-600 rounded-lg shadow-lg p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-2xl font-bold">{coachTeam.name}</h3>
+              <p className="text-blue-100 mt-1">
+                {coachTeam.description || 'Your assigned team'}
+              </p>
+              <div className="flex items-center mt-2 space-x-4 text-sm">
+                <span className="flex items-center">
+                  <UsersIcon className="h-4 w-4 mr-1" />
+                  {myPlayers.length} Players
+                </span>
+                <span className="flex items-center">
+                  <CalendarIcon className="h-4 w-4 mr-1" />
+                  {upcomingFixtures.length} Upcoming Matches
+                </span>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-3xl font-bold">{coachTeam.name.charAt(0)}</div>
+              <div className="text-sm text-blue-100">Team Initial</div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-gradient-to-r from-red-500 to-red-600 rounded-lg shadow-lg p-6 text-white">
+          <div className="flex items-center">
+            <ExclamationTriangleIcon className="h-8 w-8 mr-4" />
+            <div>
+              <h3 className="text-xl font-bold">No Team Assigned</h3>
+              <p className="text-red-100 mt-1">
+                You haven't been assigned to a team yet. Please contact an administrator to get assigned to a team.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Coach Stats Cards */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -226,7 +303,14 @@ const Coach = () => {
                               {fixture.home_team?.name || 'Team A'} vs {fixture.away_team?.name || 'Team B'}
                             </p>
                             <p className="text-xs text-gray-400">
-                              {fixture.match_date || 'TBD'} at {fixture.venue?.name || 'TBD'}
+                              {fixture.match_date ? new Date(fixture.match_date).toLocaleDateString() : 'TBD'} at {fixture.venue?.name || 'TBD'}
+                            </p>
+                            <p className="text-xs text-blue-600 font-medium">
+                              {coachTeam && (
+                                String(fixture.home_team_id || fixture.homeTeamId || fixture.home_team?.id) === String(coachTeam.id || coachTeam.team_id) 
+                                  ? 'Home Match' 
+                                  : 'Away Match'
+                              )}
                             </p>
                           </div>
                         </div>
@@ -275,6 +359,13 @@ const Coach = () => {
                           <p className="text-xs text-gray-500">
                             {result.home_score} - {result.away_score}
                           </p>
+                          <p className="text-xs text-blue-600 font-medium">
+                            {coachTeam && (
+                              String(result.home_team?.id || result.home_team_id) === String(coachTeam.id || coachTeam.team_id) 
+                                ? 'Home Match' 
+                                : 'Away Match'
+                            )}
+                          </p>
                         </div>
                       </div>
                       <div className="text-right">
@@ -312,10 +403,11 @@ const Coach = () => {
             </h3>
             <div className="mt-2 text-sm text-blue-700">
               <ul className="list-disc list-inside space-y-1">
-                <li>You can view and edit players from your team</li>
-                <li>Check fixtures to see upcoming matches</li>
-                <li>View results to track team performance</li>
-                <li>Contact admin for team management changes</li>
+                <li>View your team details and players in "My Team"</li>
+                <li>Manage your team's players and their information</li>
+                <li>Check upcoming fixtures for your team's matches</li>
+                <li>View results to track your team's performance</li>
+                <li>Contact admin if you need team assignment or changes</li>
               </ul>
             </div>
           </div>

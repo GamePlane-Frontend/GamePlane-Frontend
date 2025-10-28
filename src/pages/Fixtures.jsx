@@ -29,20 +29,43 @@ const Fixtures = () => {
   });
 
   useEffect(() => {
-    // Only fetch data if user is authenticated and has proper role
+    // Fetch data for both admins and coaches
     if (user && user.id) {
-      // Check if user has admin role for these endpoints
-      if (user.role === 'ADMIN') {
-        dispatch(fetchFixtures());
-        dispatch(fetchTeams());
-        dispatch(fetchVenues());
-        dispatch(fetchLeagues());
-        dispatch(fetchReferees());
-      } else {
-        console.log('User role is not ADMIN, skipping data fetch');
-      }
+      dispatch(fetchFixtures());
+      dispatch(fetchTeams());
+      dispatch(fetchVenues());
+      dispatch(fetchLeagues());
+      dispatch(fetchReferees());
     }
   }, [dispatch, user]);
+
+  const isAdmin = user?.role === 'ADMIN';
+  const isCoach = user?.role === 'COACH';
+  
+  // Get coach's assigned team
+  const coachTeam = teams.find(team => {
+    // Check direct coach_id match
+    if (team.coach_id === user?.id) return true;
+    
+    // Check nested coach object
+    if (team.coach?.id === user?.id) return true;
+    
+    // Check if coach_id is a string and user.id is a number or vice versa
+    if (String(team.coach_id) === String(user?.id)) return true;
+    if (String(team.coach?.id) === String(user?.id)) return true;
+    
+    return false;
+  });
+
+  // Filter fixtures based on user role
+  const filteredFixtures = isAdmin ? fixtures : 
+    isCoach ? fixtures.filter(fixture => {
+      const homeTeamId = fixture.home_team_id || fixture.homeTeamId || fixture.home_team?.id;
+      const awayTeamId = fixture.away_team_id || fixture.awayTeamId || fixture.away_team?.id;
+      const coachTeamId = coachTeam?.id || coachTeam?.team_id;
+      
+      return String(homeTeamId) === String(coachTeamId) || String(awayTeamId) === String(coachTeamId);
+    }) : fixtures;
 
   const handleInputChange = (e) => {
     setFormData({
@@ -231,16 +254,20 @@ const Fixtures = () => {
     });
   };
 
-  const isAdmin = user?.role === 'ADMIN';
-
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="md:flex md:items-center md:justify-between">
         <div className="flex-1 min-w-0">
           <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-            Fixtures & Schedule
+            {isCoach ? 'My Team Fixtures' : 'Fixtures & Schedule'}
           </h2>
+          <p className="mt-1 text-sm text-gray-500">
+            {isCoach 
+              ? `View upcoming matches for ${coachTeam?.name || 'your team'}. You can view fixture details but cannot create or delete fixtures.`
+              : 'Manage match fixtures and schedules. Create, edit, or update match information.'
+            }
+          </p>
         </div>
         {isAdmin && (
           <div className="mt-4 flex md:mt-0 md:ml-4">
@@ -255,6 +282,30 @@ const Fixtures = () => {
           </div>
         )}
       </div>
+
+      {/* Coach Team Info */}
+      {isCoach && coachTeam && (
+        <div className="bg-gradient-to-r from-blue-600 to-green-600 rounded-lg shadow-lg p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-xl font-bold">{coachTeam.name}</h3>
+              <p className="text-blue-100 mt-1">
+                {coachTeam.description || 'Your assigned team'}
+              </p>
+              <div className="flex items-center mt-2 space-x-4 text-sm">
+                <span className="flex items-center">
+                  <CalendarIcon className="h-4 w-4 mr-1" />
+                  {filteredFixtures.filter(f => f.status === 'Scheduled').length} Upcoming Matches
+                </span>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-3xl font-bold">{coachTeam.name.charAt(0)}</div>
+              <div className="text-sm text-blue-100">Team Initial</div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Filter */}
       <div className="flex items-center">
@@ -322,7 +373,7 @@ const Fixtures = () => {
         </div>
       ) : (
         <div className="space-y-4">
-          {fixtures.map((fixture, idx) => (
+          {filteredFixtures.map((fixture, idx) => (
             <div key={fixture.id || fixture.fixture_id || `fixture-${idx}`} className="bg-white shadow rounded-lg border border-gray-200">
               <div className="p-6">
                 <div className="flex items-start justify-between">
