@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchResults, createResultByFixture, updateResultByFixture, deleteResultByFixture } from '../store/slices/resultsSlice';
 import { fetchFixtures } from '../store/slices/fixturesSlice';
+import { fetchTeams } from '../store/slices/teamsSlice';
 import { PlusIcon, PencilIcon, TrashIcon, CalendarIcon, MapPinIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 
 const Results = () => {
   const dispatch = useDispatch();
   const { results, loading, error } = useSelector((state) => state.results);
   const { fixtures } = useSelector((state) => state.fixtures);
+  const { teams } = useSelector((state) => state.teams);
   const { user } = useSelector((state) => state.auth);
   
   const [showModal, setShowModal] = useState(false);
@@ -21,7 +23,39 @@ const Results = () => {
   useEffect(() => {
     dispatch(fetchResults());
     dispatch(fetchFixtures());
+    dispatch(fetchTeams());
   }, [dispatch]);
+
+  const isAdmin = user?.role === 'ADMIN';
+  const isCoach = user?.role === 'COACH';
+  
+  // Get coach's assigned team
+  const coachTeam = teams.find(team => {
+    // Check direct coach_id match
+    if (team.coach_id === user?.id) return true;
+    
+    // Check nested coach object
+    if (team.coach?.id === user?.id) return true;
+    
+    // Check if coach_id is a string and user.id is a number or vice versa
+    if (String(team.coach_id) === String(user?.id)) return true;
+    if (String(team.coach?.id) === String(user?.id)) return true;
+    
+    return false;
+  });
+
+  // Filter results based on user role
+  const filteredResults = isAdmin ? results : 
+    isCoach ? results.filter(result => {
+      const fixture = fixtures.find(f => f.id === result.fixture_id || f.fixture_id === result.fixture_id);
+      if (!fixture) return false;
+      
+      const homeTeamId = fixture.home_team_id || fixture.homeTeamId || fixture.home_team?.id;
+      const awayTeamId = fixture.away_team_id || fixture.awayTeamId || fixture.away_team?.id;
+      const coachTeamId = coachTeam?.id || coachTeam?.team_id;
+      
+      return String(homeTeamId) === String(coachTeamId) || String(awayTeamId) === String(coachTeamId);
+    }) : results;
 
   // Debug logging for fixtures
   useEffect(() => {
@@ -103,8 +137,6 @@ const Results = () => {
     });
   };
 
-  const isAdmin = user?.role === 'ADMIN';
-  
   // Calculate completed fixtures inside component
   const completedFixtures = fixtures.filter(f => f.status === 'Completed' && (f.fixture_id || f.id));
 
@@ -114,8 +146,14 @@ const Results = () => {
       <div className="md:flex md:items-center md:justify-between">
         <div className="flex-1 min-w-0">
           <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-            Match Results
+            {isCoach ? 'My Team Results' : 'Match Results'}
           </h2>
+          <p className="mt-1 text-sm text-gray-500">
+            {isCoach 
+              ? `View match results for ${coachTeam?.name || 'your team'}. You can view results but cannot create or delete them.`
+              : 'Manage match results and scores. Submit, edit, or update match results.'
+            }
+          </p>
         </div>
         {isAdmin && (
           <div className="mt-4 flex md:mt-0 md:ml-4">
@@ -130,6 +168,30 @@ const Results = () => {
           </div>
         )}
       </div>
+
+      {/* Coach Team Info */}
+      {isCoach && coachTeam && (
+        <div className="bg-gradient-to-r from-blue-600 to-green-600 rounded-lg shadow-lg p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-xl font-bold">{coachTeam.name}</h3>
+              <p className="text-blue-100 mt-1">
+                {coachTeam.description || 'Your assigned team'}
+              </p>
+              <div className="flex items-center mt-2 space-x-4 text-sm">
+                <span className="flex items-center">
+                  <CheckCircleIcon className="h-4 w-4 mr-1" />
+                  {filteredResults.length} Match Results
+                </span>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-3xl font-bold">{coachTeam.name.charAt(0)}</div>
+              <div className="text-sm text-blue-100">Team Initial</div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Error Message */}
       {error && (
@@ -166,7 +228,7 @@ const Results = () => {
         </div>
       ) : (
         <div className="space-y-4">
-          {results.map((result, idx) => (
+          {filteredResults.map((result, idx) => (
             <div key={result.result_id || result.id || `result-${idx}`} className="bg-white shadow rounded-lg border border-gray-200">
               <div className="p-6">
                 <div className="flex items-start justify-between">

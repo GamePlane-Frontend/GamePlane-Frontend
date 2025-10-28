@@ -49,7 +49,8 @@ export const login = createAsyncThunk(
         data: error.response?.data,
         message: error.message
       });
-      
+
+      console.log('🔄 Analyzing error for better feedback...', error);
       // Provide more specific error messages
       if (error.response?.status === 500) {
         const errorMsg = error.response?.data?.message || 'Backend server error';

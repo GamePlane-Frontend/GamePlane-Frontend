@@ -62,27 +62,33 @@ const MyTeam = () => {
   });
   
   // Filter players to only show players from the coach's team
-  const myPlayers = players.filter(player => 
-    player.team_id === coachTeam?.id || 
-    player.team_id === coachTeam?.team_id
-  );
+  const myPlayers = players.filter(player => {
+    const playerTeamId = player.team_id || player.teamId || player.team?.id;
+    const coachTeamId = coachTeam?.id || coachTeam?.team_id;
+    return String(playerTeamId) === String(coachTeamId);
+  });
 
   // Get team-specific fixtures and results
   const teamFixtures = coachTeam ? 
-    fixtures.filter(f => 
-      f.home_team?.id === coachTeam.id || 
-      f.away_team?.id === coachTeam.id ||
-      f.home_team?.team_id === coachTeam.team_id ||
-      f.away_team?.team_id === coachTeam.team_id
-    ) : [];
+    fixtures.filter(f => {
+      const homeTeamId = f.home_team_id || f.homeTeamId || f.home_team?.id;
+      const awayTeamId = f.away_team_id || f.awayTeamId || f.away_team?.id;
+      const coachTeamId = coachTeam?.id || coachTeam?.team_id;
+      
+      return String(homeTeamId) === String(coachTeamId) || String(awayTeamId) === String(coachTeamId);
+    }) : [];
   
   const teamResults = coachTeam ? 
-    results.filter(r => 
-      r.home_team?.id === coachTeam.id || 
-      r.away_team?.id === coachTeam.id ||
-      r.home_team?.team_id === coachTeam.team_id ||
-      r.away_team?.team_id === coachTeam.team_id
-    ) : [];
+    results.filter(r => {
+      const fixture = fixtures.find(f => f.id === r.fixture_id || f.fixture_id === r.fixture_id);
+      if (!fixture) return false;
+      
+      const homeTeamId = fixture.home_team_id || fixture.homeTeamId || fixture.home_team?.id;
+      const awayTeamId = fixture.away_team_id || fixture.awayTeamId || fixture.away_team?.id;
+      const coachTeamId = coachTeam?.id || coachTeam?.team_id;
+      
+      return String(homeTeamId) === String(coachTeamId) || String(awayTeamId) === String(coachTeamId);
+    }) : [];
 
   const upcomingMatches = teamFixtures.filter(f => f.status === 'Scheduled').slice(0, 3);
   const recentResults = teamResults.slice(0, 3);
@@ -340,7 +346,14 @@ const MyTeam = () => {
                               {fixture.home_team?.name || 'Team A'} vs {fixture.away_team?.name || 'Team B'}
                             </p>
                             <p className="text-xs text-gray-500">
-                              {fixture.match_date || 'TBD'} at {fixture.venue?.name || 'TBD'}
+                              {fixture.match_date ? new Date(fixture.match_date).toLocaleDateString() : 'TBD'} at {fixture.venue?.name || 'TBD'}
+                            </p>
+                            <p className="text-xs text-blue-600 font-medium">
+                              {coachTeam && (
+                                String(fixture.home_team_id || fixture.homeTeamId || fixture.home_team?.id) === String(coachTeam.id || coachTeam.team_id) 
+                                  ? 'Home Match' 
+                                  : 'Away Match'
+                              )}
                             </p>
                           </div>
                           <div className="text-right">
@@ -378,7 +391,14 @@ const MyTeam = () => {
                               {result.home_team?.name || 'Team A'} vs {result.away_team?.name || 'Team B'}
                             </p>
                             <p className="text-xs text-gray-500">
-                              {result.match_date || 'Completed'}
+                              {result.match_date ? new Date(result.match_date).toLocaleDateString() : 'Completed'}
+                            </p>
+                            <p className="text-xs text-blue-600 font-medium">
+                              {coachTeam && (
+                                String(result.home_team?.id || result.home_team_id) === String(coachTeam.id || coachTeam.team_id) 
+                                  ? 'Home Match' 
+                                  : 'Away Match'
+                              )}
                             </p>
                           </div>
                           <div className="text-right">

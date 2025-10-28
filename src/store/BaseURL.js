@@ -1,1 +1,1 @@
-export const baseURL = import.meta.env.VITE_API_BASE_URL || 'https://gameplane-backend.onrender.com/api';
+export const baseURL = import.meta.env.VITE_API_BASE_URL || 'https://gameplane-backend.vercel.app/api';

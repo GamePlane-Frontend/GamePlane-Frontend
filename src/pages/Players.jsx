@@ -174,6 +174,29 @@ const Players = () => {
   const isAdmin = user?.role === 'ADMIN';
   const isCoach = user?.role === 'COACH';
   
+  // Get coach's assigned team
+  const coachTeam = teams.find(team => {
+    // Check direct coach_id match
+    if (team.coach_id === user?.id) return true;
+    
+    // Check nested coach object
+    if (team.coach?.id === user?.id) return true;
+    
+    // Check if coach_id is a string and user.id is a number or vice versa
+    if (String(team.coach_id) === String(user?.id)) return true;
+    if (String(team.coach?.id) === String(user?.id)) return true;
+    
+    return false;
+  });
+
+  // Filter players based on user role
+  const filteredPlayers = isAdmin ? players : 
+    isCoach ? players.filter(player => {
+      const playerTeamId = player.team_id || player.teamId || player.team?.id;
+      const coachTeamId = coachTeam?.id || coachTeam?.team_id;
+      return String(playerTeamId) === String(coachTeamId);
+    }) : players;
+  
   // For coaches, filter players to only show players from teams they coach
   // For now, we'll show all players but restrict edit/delete to admin only
   // TODO: Implement proper coach-team relationship filtering
@@ -184,8 +207,14 @@ const Players = () => {
       <div className="md:flex md:items-center md:justify-between">
         <div className="flex-1 min-w-0">
           <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-            Players
+            {isCoach ? 'My Team Players' : 'Players Management'}
           </h2>
+          <p className="mt-1 text-sm text-gray-500">
+            {isCoach 
+              ? `Manage players for ${coachTeam?.name || 'your team'}. You can view and edit your team's players.`
+              : 'Manage players across all teams. Add, edit, or remove players from the system.'
+            }
+          </p>
         </div>
         {isAdmin && (
           <div className="mt-4 flex md:mt-0 md:ml-4">
@@ -200,6 +229,30 @@ const Players = () => {
           </div>
         )}
       </div>
+
+      {/* Coach Team Info */}
+      {isCoach && coachTeam && (
+        <div className="bg-gradient-to-r from-blue-600 to-green-600 rounded-lg shadow-lg p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-xl font-bold">{coachTeam.name}</h3>
+              <p className="text-blue-100 mt-1">
+                {coachTeam.description || 'Your assigned team'}
+              </p>
+              <div className="flex items-center mt-2 space-x-4 text-sm">
+                <span className="flex items-center">
+                  <UsersIcon className="h-4 w-4 mr-1" />
+                  {filteredPlayers.length} Players
+                </span>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-3xl font-bold">{coachTeam.name.charAt(0)}</div>
+              <div className="text-sm text-blue-100">Team Initial</div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Search and Filter */}
       <div className="flex flex-col sm:flex-row gap-4">
@@ -247,7 +300,7 @@ const Players = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {players.map((player, index) => {
+          {filteredPlayers.map((player, index) => {
             const getRoleBadge = (position) => {
               switch (position) {
                 case 'FW': return { text: 'Forward', color: 'bg-red-100 text-red-800' };
@@ -334,7 +387,7 @@ const Players = () => {
       )}
 
       {/* Empty State */}
-      {!loading && players.length === 0 && (
+      {!loading && filteredPlayers.length === 0 && (
         <div className="text-center py-12">
           <div className="mx-auto h-12 w-12 text-gray-400">
             <PlusIcon className="h-12 w-12" />
